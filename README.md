@@ -3,7 +3,7 @@
 Bienvenue dans la version remaniée par OutlawTwin / TwinCoder du script de zones vertes pour FiveM. Cette édition supprime les anciennes références, ajoute une interface utilisateur stylée et offre une expérience bilingue prête pour la production.
 
 ## ✨ Features / Fonctionnalités
-- **Twin Designer UI** – Review zone settings through a sleek summary panel before publishing.
+- **Twin Designer UI** – Configure zones inside an OutlawTwin-branded tablet interface with live sliders and toggles.
 - **Branded Zones** – Notifications, blips and presets carry the OutlawTwin identity.
 - **Bilingual Locales** – English and French JSON locales included. Select your language via `ox_lib` configuration.
 - **Custom Commands** – `/outlawzone` to create and `/outlawclear` to remove temporary safe zones.
@@ -24,7 +24,7 @@ Bienvenue dans la version remaniée par OutlawTwin / TwinCoder du script de zone
 
 ## 🕹️ Usage / Utilisation
 - Run `/outlawzone` as an admin to open the OutlawTwin designer.
-- Fill out the dialog, confirm the summary card, and the zone spawns instantly for all players.
+- Ajustez le nom, la bannière, le rayon, les limitations de vitesse et les options de combat directement dans l'interface.
 - Remove the active temporary zone with `/outlawclear`.
 
 ## 🛠️ Configuration / Personnalisation

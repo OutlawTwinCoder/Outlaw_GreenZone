@@ -27,7 +27,12 @@
         "blipID": "ID du blip",
         "blipIDDescription": "ID du sprite affiché sur la carte",
         "blipColor": "Couleur du blip",
-        "blipColorDescription": "Index de couleur du sprite"
+        "blipColorDescription": "Index de couleur du sprite",
+        "confirm": "Valider la zone",
+        "cancel": "Annuler",
+        "radiusSuffix": "m",
+        "speedUnit": "MPH",
+        "speedUnlimited": "Illimitée"
     },
     "confirm": {
         "title": "Confirmer l'action",

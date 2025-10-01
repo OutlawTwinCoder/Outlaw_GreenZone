@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OutlawTwin Zone Designer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="app" class="designer designer--hidden">
+        <div class="designer__panel">
+            <header class="designer__header">
+                <div>
+                    <h1 id="title"></h1>
+                    <p id="subtitle"></p>
+                </div>
+                <div class="designer__badge">OutlawTwin</div>
+            </header>
+            <form id="designer-form" class="designer__form">
+                <div class="form__grid">
+                    <label class="field" for="blipName">
+                        <span class="field__label" id="label-blipName"></span>
+                        <input id="blipName" name="blipName" type="text" maxlength="32" autocomplete="off" />
+                        <small class="field__hint" id="hint-blipName"></small>
+                    </label>
+                    <label class="field" for="banner">
+                        <span class="field__label" id="label-banner"></span>
+                        <input id="banner" name="banner" type="text" maxlength="64" autocomplete="off" />
+                        <small class="field__hint" id="hint-banner"></small>
+                    </label>
+                    <div class="field field--color">
+                        <span class="field__label" id="label-bannerColor"></span>
+                        <div class="color-input">
+                            <input id="bannerColor" name="bannerColor" type="color" />
+                            <input id="bannerColorText" name="bannerColorText" type="text" maxlength="7" />
+                        </div>
+                        <small class="field__hint" id="hint-bannerColor"></small>
+                    </div>
+                    <label class="field" for="bannerPosition">
+                        <span class="field__label" id="label-bannerPosition"></span>
+                        <select id="bannerPosition" name="bannerPosition"></select>
+                        <small class="field__hint" id="hint-bannerPosition"></small>
+                    </label>
+                </div>
+
+                <div class="form__stack">
+                    <div class="slider-field">
+                        <div class="slider-field__header">
+                            <span id="label-radius"></span>
+                            <span class="slider-field__value"><span id="radius-value"></span> <span id="radius-suffix"></span></span>
+                        </div>
+                        <input id="radius" name="radius" type="range" min="1" max="100" step="1" />
+                    </div>
+
+                    <div class="toggle-row">
+                        <label class="toggle">
+                            <input id="disableFiring" name="disableFiring" type="checkbox" />
+                            <span id="label-disableFiring"></span>
+                        </label>
+                        <label class="toggle">
+                            <input id="invincible" name="invincible" type="checkbox" />
+                            <span id="label-invincible"></span>
+                        </label>
+                    </div>
+
+                    <div class="slider-field">
+                        <div class="slider-field__header">
+                            <span id="label-speedLimit"></span>
+                            <span class="slider-field__value"><span id="speed-value"></span></span>
+                        </div>
+                        <input id="speedLimit" name="speedLimit" type="range" min="0" max="120" step="5" />
+                    </div>
+
+                    <div class="form__grid">
+                        <label class="field" for="blipID">
+                            <span class="field__label" id="label-blipID"></span>
+                            <input id="blipID" name="blipID" type="number" min="1" max="826" />
+                            <small class="field__hint" id="hint-blipID"></small>
+                        </label>
+                        <label class="field" for="blipColor">
+                            <span class="field__label" id="label-blipColor"></span>
+                            <input id="blipColor" name="blipColor" type="number" min="1" max="85" />
+                            <small class="field__hint" id="hint-blipColor"></small>
+                        </label>
+                    </div>
+                </div>
+
+                <footer class="designer__footer">
+                    <button type="button" id="cancel" class="btn btn--ghost"></button>
+                    <button type="submit" id="confirm" class="btn btn--primary"></button>
+                </footer>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

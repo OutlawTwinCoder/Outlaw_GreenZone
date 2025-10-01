@@ -27,7 +27,12 @@
         "blipID": "Blip ID",
         "blipIDDescription": "Sprite ID to display on the map",
         "blipColor": "Blip Color",
-        "blipColorDescription": "Color index for the sprite"
+        "blipColorDescription": "Color index for the sprite",
+        "confirm": "Confirm Outlaw Zone",
+        "cancel": "Cancel",
+        "radiusSuffix": "m",
+        "speedUnit": "MPH",
+        "speedUnlimited": "Unlimited"
     },
     "confirm": {
         "title": "Confirm Action",
