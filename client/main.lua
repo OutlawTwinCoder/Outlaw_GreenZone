@@ -1,4 +1,6 @@
-local locale = lib.locale()
+local locale = lib and lib.locale or function(phrase)
+    return phrase
+end
 
 local greenZone = nil
 local zone = lib.points.new(vec3(0, 0, 0), 0)

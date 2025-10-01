@@ -1,4 +1,6 @@
-local locale = lib.locale()
+local locale = lib and lib.locale or function(phrase)
+    return phrase
+end
 
 Config = {}
 
