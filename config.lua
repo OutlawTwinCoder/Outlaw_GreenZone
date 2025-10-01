@@ -1,10 +1,14 @@
-local locale = lib and lib.locale or function(phrase)
+local locale = function(phrase, ...)
     return phrase
+end
+
+if lib and lib.locale then
+    locale = lib.locale()
 end
 
 Config = {}
 
-Config.EnableNotifications = false -- Toggle OutlawTwin styled notifications for preconfigured GreenZones
+Config.EnableNotifications = false -- Toggle ox_lib notifications for preconfigured GreenZones
 Config.GreenzonesCommand = 'outlawzone' -- Command used to start the TwinCoder Outlaw zone designer
 Config.GreenzonesClearCommand = 'outlawclear' -- Command used to remove the active TwinCoder Outlaw zone
 
@@ -86,6 +90,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
 
 Notifications = {
     position = 'top', -- The position for all notifications
+    type = 'inform', -- Default ox_lib notification type
     greenzoneTitle = locale('notify.greenzoneTitle'), -- Title when entering a greenzone
     greenzoneIcon = 'border-all', -- The icon displayed on the notifications
     greenzoneEnter = locale('notify.greenzoneEnter'), -- Description when entering a greenzone
