@@ -1,11 +1,15 @@
+local locale = lib and lib.locale or function(phrase)
+    return phrase
+end
+
 Config = {}
 
-Config.EnableNotifications = false -- Do you want notifications when a player enters and exits the preconfigured greenzones (The Config.GreenZones)?
-Config.GreenzonesCommand = 'setzone' -- The command to run in-game to start creating a temporary greenzone
-Config.GreenzonesClearCommand = 'clearzone' -- The command to run in-game to clear an existing temporary greenzone
+Config.EnableNotifications = false -- Toggle OutlawTwin styled notifications for preconfigured GreenZones
+Config.GreenzonesCommand = 'outlawzone' -- Command used to start the TwinCoder Outlaw zone designer
+Config.GreenzonesClearCommand = 'outlawclear' -- Command used to remove the active TwinCoder Outlaw zone
 
 Config.GreenZones = { -- These are persistent greenzones that exist constantly, at all times - you can create as many as you want here
-    ['hospital'] = {
+    ['twin_medic_haven'] = {
         coords = vec3(299.2270, -584.6892, 43.2608), -- The center-most location of the greenzone
         radius = 100.0, -- The radius (how large or small) the greenzone is (note: this must include the .0 on the end of the number to work)
         disablePlayerVehicleCollision = false, -- Do you want to disable players & their vehicles collisions between each other? (true if yes, false if no)
@@ -15,7 +19,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         disableFiring = true, -- Do you want to disable everyone from firing weapons/punching/etc in this zone? (true if yes, false if no)
         setInvincible = true, -- Do you want everyone to be invincible in this zone? (true if yes, false if no)
         displayTextUI = true, -- Do you want textUI to display on everyones screen while in this zone? (true if yes, false if no)
-        textToDisplay = 'Hospital Green Zone', -- The text to display on everyones screen if displayTextUI is true for this zone
+        textToDisplay = 'OutlawTwin Medical Sanctuary', -- The text to display on everyones screen if displayTextUI is true for this zone
         backgroundColorTextUI = '#ff5a47', -- The color of the textUI background to display if displayTextUI is true for this zone
         textColor = '#000000', -- The color of the text & icon itself on the textUI if displayTextUI is true for this zone
         displayTextPosition = 'top-center', -- The position of the textUI if displayTextUI is true for this zone
@@ -27,9 +31,9 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         blipColor = 2, -- Blip color (https://docs.fivem.net/docs/game-references/blips/#blip-colors)
         blipScale = 0.7, -- Blip size (0.01 to 1.0) (only used if enableSprite = true, otherwise can be ignored)
         blipAlpha = 100, -- The transparency of the radius blip if blipType = 'radius', otherwise not used/can be ignored
-        blipName = 'Hospital Greenzone' -- Blip name on the map (if enableSprite = true, otherwise can be ignored)
+        blipName = 'OutlawTwin Medical Sanctuary' -- Blip name on the map (if enableSprite = true, otherwise can be ignored)
     },
-    ['policestation'] = {
+    ['twin_pd_plaza'] = {
         coords = vec3(432.7403, -982.1954, 30.7105),
         radius = 100.0,
         disablePlayerVehicleCollision = false,
@@ -39,7 +43,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         disableFiring = true,
         setInvincible = false,
         displayTextUI = true,
-        textToDisplay = 'Police Green Zone',
+        textToDisplay = 'OutlawTwin Justice Plaza',
         backgroundColorTextUI = '#ff5a47',
         textColor = '#000000',
         displayTextPosition = 'top-center',
@@ -51,9 +55,9 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         blipColor = 2,
         blipScale = 0.7,
         blipAlpha = 100,
-        blipName = 'LSPD Greenzone'
+        blipName = 'OutlawTwin Justice Plaza'
     },
-    ['examplelocation3'] = {
+    ['twin_highlands'] = {
         coords = vec3(-1243.6606, 1348.0383, 212.7915),
         radius = 200.0,
         disablePlayerVehicleCollision = false,
@@ -63,7 +67,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         disableFiring = false,
         setInvincible = true,
         displayTextUI = true,
-        textToDisplay = 'Random Green Zone',
+        textToDisplay = 'Outlaw Highlands Retreat',
         backgroundColorTextUI = '#ff5a47',
         textColor = '#000000',
         displayTextPosition = 'top-center',
@@ -75,7 +79,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         blipColor = 2,
         blipScale = 0.8,
         blipAlpha = 100,
-        blipName = 'Another Greenzone'
+        blipName = 'Outlaw Highlands Retreat'
     }
     -- Create more zones here by following the same format as above
 }
