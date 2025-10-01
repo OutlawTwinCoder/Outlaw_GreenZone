@@ -285,7 +285,7 @@ local function createAdminBlip(name, coords, radius, sprite, color)
     local blipRadius = tonumber(radius) or 0.0
     if blipRadius > 0 then
         adminState.radiusBlip = AddBlipForRadius(coords.x, coords.y, coords.z, blipRadius)
-        configureRadiusBlip(adminState.radiusBlip, color or 0, 100, false)
+        configureRadiusBlip(adminState.radiusBlip, color or 0, 175, false)
     end
 
     adminState.spriteBlip = AddBlipForCoord(coords.x, coords.y, coords.z)
@@ -317,6 +317,7 @@ CreateThread(function()
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
     setupPersistentZones()
+    TriggerServerEvent('outlawtwin_greenzones:requestAdminZone')
 end)
 
 AddEventHandler('onResourceStop', function(res)

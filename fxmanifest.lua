@@ -14,6 +14,7 @@ files {
     'ui/script.js',
     'locales/en.json',
     'locales/fr.json',
+    'data/admin_zone.json',
 }
 
 shared_scripts {
