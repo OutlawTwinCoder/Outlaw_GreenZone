@@ -3,7 +3,10 @@ local locale = function(phrase, ...)
 end
 
 if lib and lib.locale then
-    locale = lib.locale()
+    local libLocale = lib.locale()
+    if type(libLocale) == 'function' then
+        locale = libLocale
+    end
 end
 
 Config = {}
