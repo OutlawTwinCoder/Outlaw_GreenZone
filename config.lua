@@ -1,3 +1,5 @@
+local locale = lib.locale()
+
 Config = {}
 
 Config.EnableNotifications = false -- Toggle OutlawTwin styled notifications for preconfigured GreenZones

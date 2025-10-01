@@ -1,3 +1,5 @@
+local locale = lib.locale()
+
 local greenZone = nil
 local vehiclesInZone = nil
 local adminZoneMenu = nil

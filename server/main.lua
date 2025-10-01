@@ -1,3 +1,5 @@
+local locale = lib.locale()
+
 lib.addCommand(Config.GreenzonesCommand, {
     help = locale('commands.setzone'),
     restricted = 'group.admin'
