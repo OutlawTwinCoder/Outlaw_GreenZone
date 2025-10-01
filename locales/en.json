@@ -1,39 +1,67 @@
 {
     "notify": {
-        "greenzoneTitle": "Green Zone",
-        "greenzoneEnter": "You have entered a Green Zone and certain actions have been disabled",
-        "greenzoneExit": "You have exited a Green Zone and all actions have been restored"
+        "greenzoneTitle": "OutlawTwin Green Zone",
+        "greenzoneEnter": "You stepped into an OutlawTwin sanctuary; restricted gameplay is now in effect.",
+        "greenzoneExit": "You left the OutlawTwin sanctuary; full gameplay is restored."
     },
     "menu": {
-        "title": "Create Green Zone",
+        "title": "OutlawTwin Zone Designer",
+        "subtitle": "Configure a custom TwinCoder safe-space before pushing it live.",
         "blipName": "Blip Name",
-        "blipNameDescription": "The name of the Green Zone on the map",
-        "blipNamePlaceholder": "Green Zone",
-        "displayText": "Display Text",
-        "displayTextDescription": "Text to display on everyone's screen in this zone",
-        "displayTextPlaceholder": "Green Zone",
-        "displayTextColor": "Display Text Color",
-        "displayTextColorDescription": "The HTML color code of the text displayed",
-        "displayTextPosition": "Display Text Position",
-        "displayTextPositionDescription": "The position on the screen for the text",
+        "blipNameDescription": "Name of the Outlaw zone on the map",
+        "blipNamePlaceholder": "OutlawTwin Zone",
+        "displayText": "On-screen Banner",
+        "displayTextDescription": "Headline broadcast to players while inside",
+        "displayTextPlaceholder": "TwinCoder Safe Zone",
+        "displayTextColor": "Banner Color",
+        "displayTextColorDescription": "HTML color code of the banner background",
+        "displayTextPosition": "Banner Position",
+        "displayTextPositionDescription": "Screen position for the Outlaw banner",
         "positionRightCenter": "Right center",
         "positionLeftCenter": "Left center",
         "positionTopCenter": "Top center",
-        "size": "Size (radius)",
+        "size": "Radius",
         "disableFiring": "Disable Firing",
         "invincible": "Everyone Invincible",
         "speedLimit": "Speed Limit (MPH)",
         "blipID": "Blip ID",
-        "blipIDDescription": "The sprite ID to display on the map",
+        "blipIDDescription": "Sprite ID to display on the map",
         "blipColor": "Blip Color",
-        "blipColorDescription": "The blip color for the above sprite"
+        "blipColorDescription": "Color index for the sprite",
+        "confirm": "Confirm Outlaw Zone",
+        "cancel": "Cancel",
+        "radiusSuffix": "m",
+        "speedUnit": "MPH",
+        "speedUnlimited": "Unlimited"
     },
     "confirm": {
         "title": "Confirm Action",
         "content": "Are you sure you want to delete your Green Zone?"
     },
     "commands": {
-        "setzone": "Create a temporary Green Zone",
-        "deletezone": "Delete a temporary Green Zone"
+        "setzone": "Create a temporary OutlawTwin Green Zone",
+        "deletezone": "Delete a temporary OutlawTwin Green Zone"
+    },
+    "ui": {
+        "designerTitle": "TwinCoder Outlaw Summary",
+        "designerDescription": "Review the configuration before broadcasting it to every Twin in town.",
+        "metadataLocation": "Location",
+        "metadataRadius": "Radius",
+        "metadataBanner": "Banner",
+        "metadataBannerPosition": "Banner Position",
+        "metadataSpeedLimit": "Speed Limit",
+        "metadataFiring": "Firing Lock",
+        "metadataInvincible": "Invincible",
+        "metadataBlip": "Blip",
+        "metadataBlipValue": "Sprite #%s • Color %s",
+        "speedUnlimited": "Unlimited",
+        "speedFormat": "%s MPH",
+        "booleanEnabled": "Enabled",
+        "booleanDisabled": "Disabled",
+        "confirm": "Publish Twin Zone",
+        "confirmDescription": "Send the configuration live to every outlaw twin online.",
+        "cancel": "Edit Again",
+        "cancelDescription": "Go back and tweak the configuration before publishing.",
+        "details": "Zone Details"
     }
 }

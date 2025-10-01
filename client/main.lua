@@ -1,12 +1,125 @@
+local locale = lib and lib.locale or function(phrase)
+    return phrase
+end
+
 local greenZone = nil
-local vehiclesInZone = nil
-local adminZoneMenu = nil
 local zone = lib.points.new(vec3(0, 0, 0), 0)
 local pedCoords = nil
 local radiusBlip = nil
 local sprite = nil
 local vehicle = nil
 local speed = 0
+local designerPromise = nil
+
+local noop = function() end
+local activeLocale = GetConvar('ox:locale', 'en')
+
+local function sanitizeString(value, fallback)
+    if type(value) ~= 'string' then
+        return fallback
+    end
+
+    local trimmed = value:gsub('^%s+', ''):gsub('%s+$', '')
+    if trimmed == '' then
+        return fallback
+    end
+
+    return trimmed
+end
+
+local function designerLabels()
+    return {
+        title = locale('menu.title'),
+        subtitle = locale('menu.subtitle'),
+        actions = {
+            confirm = locale('menu.confirm'),
+            cancel = locale('menu.cancel')
+        },
+        fields = {
+            blipName = {
+                label = locale('menu.blipName'),
+                description = locale('menu.blipNameDescription'),
+                placeholder = locale('menu.blipNamePlaceholder')
+            },
+            banner = {
+                label = locale('menu.displayText'),
+                description = locale('menu.displayTextDescription'),
+                placeholder = locale('menu.displayTextPlaceholder')
+            },
+            bannerColor = {
+                label = locale('menu.displayTextColor'),
+                description = locale('menu.displayTextColorDescription')
+            },
+            bannerPosition = {
+                label = locale('menu.displayTextPosition'),
+                description = locale('menu.displayTextPositionDescription')
+            },
+            radius = {
+                label = locale('menu.size')
+            },
+            disableFiring = {
+                label = locale('menu.disableFiring')
+            },
+            invincible = {
+                label = locale('menu.invincible')
+            },
+            speedLimit = {
+                label = locale('menu.speedLimit')
+            },
+            blipID = {
+                label = locale('menu.blipID'),
+                description = locale('menu.blipIDDescription')
+            },
+            blipColor = {
+                label = locale('menu.blipColor'),
+                description = locale('menu.blipColorDescription')
+            }
+        },
+        positions = {
+            { value = 'top-center', label = locale('menu.positionTopCenter') },
+            { value = 'right-center', label = locale('menu.positionRightCenter') },
+            { value = 'left-center', label = locale('menu.positionLeftCenter') }
+        },
+        helpers = {
+            radiusSuffix = locale('menu.radiusSuffix'),
+            speedUnit = locale('menu.speedUnit'),
+            unlimited = locale('menu.speedUnlimited')
+        }
+    }
+end
+
+local function openDesigner(defaults)
+    if designerPromise then
+        return nil
+    end
+
+    designerPromise = promise.new()
+
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = 'open',
+        labels = designerLabels(),
+        defaults = defaults,
+        lang = activeLocale
+    })
+
+    local result = Citizen.Await(designerPromise)
+    designerPromise = nil
+    return result
+end
+
+local function closeDesigner()
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close' })
+end
+
+local function resolveDesigner(value)
+    closeDesigner()
+    if designerPromise then
+        designerPromise:resolve(value)
+        designerPromise = nil
+    end
+end
 
 -- Default greenzones configured beforehand in the config
 for k, v in pairs(Config.GreenZones) do
@@ -157,7 +270,7 @@ for k, v in pairs(Config.GreenZones) do
     end
 end
 
- -- Blip creation for the default persistent greenzones configured beforehand
+-- Blip creation for the default persistent greenzones configured beforehand
 for k, v in pairs(Config.GreenZones) do
     if v.blip then
         if v.blipType == 'radius' then
@@ -187,45 +300,87 @@ for k, v in pairs(Config.GreenZones) do
     end
 end
 
+RegisterNUICallback('designerSubmit', function(data, cb)
+    resolveDesigner(data)
+    cb('ok')
+end)
+
+RegisterNUICallback('designerCancel', function(_, cb)
+    resolveDesigner(nil)
+    cb('ok')
+end)
+
+RegisterNUICallback('designerEscape', function(_, cb)
+    resolveDesigner(nil)
+    cb('ok')
+end)
+
 -- Start of events for creating Greenzones in-game, this is the menu that takes data, passes it to server
-lib.callback.register('lation_greenzones:adminZone', function()
+lib.callback.register('outlawtwin_greenzones:adminZone', function()
     pedCoords = GetEntityCoords(cache.ped)
-    adminZoneMenu = lib.inputDialog(locale('menu.title'), {
-        {type = 'input', label = locale('menu.blipName'), description = locale('menu.blipNameDescription'), placeholder = locale('menu.blipNamePlaceholder'), icon = 'quote-left', required = true, min = 4, max = 16},
-        {type = 'input', label = locale('menu.displayText'), description = locale('menu.displayTextDescription'), placeholder = locale('menu.displayTextPlaceholder'), icon = 'comment', required = true},
-        {type = 'color', label = locale('menu.displayTextColor'), description = locale('menu.displayTextColorDescription'), default = '#ff5a47', icon = 'palette', required = true},
-        {type = 'select', label = locale('menu.displayTextPosition'), description = locale('menu.displayTextPositionDescription'), options = {
-            { value = 'right-center', label = locale('menu.positionRightCenter') },
-            { value = 'left-center', label = locale('menu.positionLeftCenter') },
-            { value = 'top-center', label = locale('menu.positionTopCenter') }
-        }, default = 'top-center', clearable = false, required = true},
-        {type = 'slider', label = locale('menu.size'), icon = 'sliders', required = true, default = 10, min = 1, max = 100, step = 1},
-        {type = 'checkbox', label = locale('menu.disableFiring'), checked = false},
-        {type = 'checkbox', label = locale('menu.invincible'), checked = false},
-        {type = 'slider', label = locale('menu.speedLimit'), icon = 'sliders', required = false, default = 0, min = 0, max = 100, step = 10},
-        {type = 'number', label = locale('menu.blipID'), description = locale('menu.blipIDDescription'), icon = 'map-pin', default = 487, required = true},
-        {type = 'number', label = locale('menu.blipColor'), description = locale('menu.blipColorDescription'), icon = 'palette', default = 1, required = true}
+    local notifyPosition = (Notifications and Notifications.position) or 'top'
+    lib.notify({
+        title = locale('menu.title'),
+        description = locale('menu.subtitle'),
+        position = notifyPosition,
+        type = 'inform',
+        duration = 6000,
+        icon = 'draw-polygon'
     })
-    if adminZoneMenu == nil then
+
+    local defaults = {
+        blipName = locale('menu.blipNamePlaceholder'),
+        banner = locale('menu.displayTextPlaceholder'),
+        bannerColor = '#ff5a47',
+        bannerPosition = 'top-center',
+        radius = 10,
+        disableFiring = false,
+        invincible = false,
+        speedLimit = 0,
+        blipID = 487,
+        blipColor = 1
+    }
+
+    local adminZoneMenu = openDesigner(defaults)
+    if not adminZoneMenu then
         return
-    else
-        zoneName = adminZoneMenu[1]
-        textUI = adminZoneMenu[2]
-        textUIColor = adminZoneMenu[3]
-        textUIPosition = adminZoneMenu[4]
-        zoneSize = adminZoneMenu[5]
-        disarm = adminZoneMenu[6]
-        invincible = adminZoneMenu[7]
-        speedLimit = adminZoneMenu[8]
-        blipID = adminZoneMenu[9]
-        blipColor = adminZoneMenu[10]
-        lib.callback('lation_greenzones:data', false, cb, pedCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
     end
+
+    local zoneName = sanitizeString(adminZoneMenu.blipName, defaults.blipName)
+    local textUI = sanitizeString(adminZoneMenu.banner, defaults.banner)
+    local textUIColor = sanitizeString(adminZoneMenu.bannerColor, defaults.bannerColor)
+    if not textUIColor:match('^#%x%x%x%x%x%x$') then
+        textUIColor = defaults.bannerColor
+    else
+        textUIColor = textUIColor:upper()
+    end
+
+    local textUIPosition = sanitizeString(adminZoneMenu.bannerPosition, defaults.bannerPosition)
+    if textUIPosition ~= 'top-center' and textUIPosition ~= 'right-center' and textUIPosition ~= 'left-center' then
+        textUIPosition = defaults.bannerPosition
+    end
+    local zoneSize = tonumber(adminZoneMenu.radius) or defaults.radius
+    local disarm = adminZoneMenu.disableFiring and true or false
+    local invincible = adminZoneMenu.invincible and true or false
+    local speedLimit = tonumber(adminZoneMenu.speedLimit) or defaults.speedLimit
+    local blipID = tonumber(adminZoneMenu.blipID) or defaults.blipID
+    local blipColor = tonumber(adminZoneMenu.blipColor) or defaults.blipColor
+
+    if zoneSize < 1.0 then zoneSize = 1.0 end
+    if zoneSize > 100.0 then zoneSize = 100.0 end
+    if speedLimit < 0 then speedLimit = 0 end
+    if speedLimit > 120 then speedLimit = 120 end
+    if blipID < 1 then blipID = defaults.blipID end
+    if blipID > 826 then blipID = 826 end
+    if blipColor < 1 then blipColor = defaults.blipColor end
+    if blipColor > 85 then blipColor = 85 end
+
+    lib.callback('outlawtwin_greenzones:data', false, noop, pedCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
 end)
 
 -- The function that creates a temporary greenzone via in-game command for all clients from the data passed
-RegisterNetEvent('lation_greenzones:createAdminZone')
-AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
+RegisterNetEvent('outlawtwin_greenzones:createAdminZone')
+AddEventHandler('outlawtwin_greenzones:createAdminZone', function(zoneCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
     vehicle = GetVehiclePedIsIn(cache.ped, false)
     zone:remove() -- Removes any existing zones
     RemoveBlip(radiusBlip) -- Removes any exisitng radius blips
@@ -233,7 +388,7 @@ AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneNa
     lib.hideTextUI() -- Hides any existing textUI's
     SetVehicleMaxSpeed(vehicle, 0.0) -- Ensures no vehicle speed limits are enforced
     SetEntityInvincible(cache.ped, false) -- Ensures no one is still invincible anywhere
-    createBlip(zoneName, zoneCoords, zoneSize, blipID, blipColor) -- Creates the new blip
+    createTwinBlip(zoneName, zoneCoords, zoneSize, blipID, blipColor) -- Creates the new blip
     zone = lib.points.new(zoneCoords, zoneSize) -- Creates a new point
     speed = speedLimit * 0.44 -- Converts to MPH (probably not 100% accurate but works enough lul)
     function zone:onEnter()
@@ -270,7 +425,7 @@ AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneNa
 end)
 
 -- The function that creates blips for Greenzones created in-game
-function createBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
+local function createTwinBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
     local radius = lib.math.round(blipRadius, 1)
     radiusBlip = AddBlipForRadius(blipCoords, radius)
     SetBlipColour(radiusBlip, blipColor)
@@ -287,7 +442,7 @@ function createBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
 end
 
 -- The actual removal of all tempoary greenzone related things
-function deleteZone()
+local function deleteTwinZone()
     vehicle = GetVehiclePedIsIn(cache.ped, false)
     zone:remove()
     RemoveBlip(radiusBlip)
@@ -298,7 +453,7 @@ function deleteZone()
 end
 
 -- The confirmation for deleting an active temporary greenzone
-lib.callback.register('lation_greenzones:adminZoneClear', function()
+lib.callback.register('outlawtwin_greenzones:adminZoneClear', function()
     local confirm = lib.alertDialog({
         header = locale('confirm.title'),
         content = locale('confirm.content'),
@@ -306,14 +461,14 @@ lib.callback.register('lation_greenzones:adminZoneClear', function()
         cancel = true
     })
     if confirm == 'confirm' then
-        lib.callback('lation_greenzones:deleteZone')
+        lib.callback('outlawtwin_greenzones:deleteZone')
     else
         return
     end
 end)
 
 -- The event that gets triggered for all clients when deleting a temporary greenzone
-RegisterNetEvent('lation_greenzones:deleteAdminZone')
-AddEventHandler('lation_greenzones:deleteAdminZone', function()
-    deleteZone()
+RegisterNetEvent('outlawtwin_greenzones:deleteAdminZone')
+AddEventHandler('outlawtwin_greenzones:deleteAdminZone', function()
+    deleteTwinZone()
 end)
