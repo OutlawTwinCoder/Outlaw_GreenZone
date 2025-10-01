@@ -1,0 +1,62 @@
+{
+    "notify": {
+        "greenzoneTitle": "Zone Verte OutlawTwin",
+        "greenzoneEnter": "Vous venez d'entrer dans un sanctuaire OutlawTwin ; certaines actions sont désormais limitées.",
+        "greenzoneExit": "Vous avez quitté le sanctuaire OutlawTwin ; toutes les actions sont rétablies."
+    },
+    "menu": {
+        "title": "Designer de Zone OutlawTwin",
+        "subtitle": "Configurez une zone sécurisée TwinCoder avant de la diffuser.",
+        "blipName": "Nom du blip",
+        "blipNameDescription": "Nom de la zone Outlaw sur la carte",
+        "blipNamePlaceholder": "Zone OutlawTwin",
+        "displayText": "Bannière à l'écran",
+        "displayTextDescription": "Titre affiché aux joueurs dans la zone",
+        "displayTextPlaceholder": "Zone sûre TwinCoder",
+        "displayTextColor": "Couleur de la bannière",
+        "displayTextColorDescription": "Code couleur HTML de la bannière",
+        "displayTextPosition": "Position de la bannière",
+        "displayTextPositionDescription": "Position à l'écran de la bannière Outlaw",
+        "positionRightCenter": "Centre droit",
+        "positionLeftCenter": "Centre gauche",
+        "positionTopCenter": "Centre haut",
+        "size": "Rayon",
+        "disableFiring": "Désactiver les tirs",
+        "invincible": "Tout le monde invincible",
+        "speedLimit": "Vitesse max (MPH)",
+        "blipID": "ID du blip",
+        "blipIDDescription": "ID du sprite affiché sur la carte",
+        "blipColor": "Couleur du blip",
+        "blipColorDescription": "Index de couleur du sprite"
+    },
+    "confirm": {
+        "title": "Confirmer l'action",
+        "content": "Êtes-vous sûr de vouloir supprimer votre zone verte ?"
+    },
+    "commands": {
+        "setzone": "Créer une zone verte OutlawTwin temporaire",
+        "deletezone": "Supprimer une zone verte OutlawTwin temporaire"
+    },
+    "ui": {
+        "designerTitle": "Récapitulatif TwinCoder Outlaw",
+        "designerDescription": "Vérifiez la configuration avant de la publier pour tous les Twins.",
+        "metadataLocation": "Position",
+        "metadataRadius": "Rayon",
+        "metadataBanner": "Bannière",
+        "metadataBannerPosition": "Position de la bannière",
+        "metadataSpeedLimit": "Vitesse",
+        "metadataFiring": "Blocage des tirs",
+        "metadataInvincible": "Invincible",
+        "metadataBlip": "Blip",
+        "metadataBlipValue": "Sprite n°%s • Couleur %s",
+        "speedUnlimited": "Illimitée",
+        "speedFormat": "%s MPH",
+        "booleanEnabled": "Activé",
+        "booleanDisabled": "Désactivé",
+        "confirm": "Publier la zone Twin",
+        "confirmDescription": "Diffuser la configuration à tous les outlaws connectés.",
+        "cancel": "Modifier encore",
+        "cancelDescription": "Revenir en arrière pour ajuster la configuration.",
+        "details": "Détails de la zone"
+    }
+}

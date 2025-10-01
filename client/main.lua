@@ -157,7 +157,7 @@ for k, v in pairs(Config.GreenZones) do
     end
 end
 
- -- Blip creation for the default persistent greenzones configured beforehand
+-- Blip creation for the default persistent greenzones configured beforehand
 for k, v in pairs(Config.GreenZones) do
     if v.blip then
         if v.blipType == 'radius' then
@@ -187,9 +187,110 @@ for k, v in pairs(Config.GreenZones) do
     end
 end
 
+local function boolLabel(value)
+    if value then
+        return locale('ui.booleanEnabled')
+    end
+
+    return locale('ui.booleanDisabled')
+end
+
+local function formatSpeed(value)
+    if not value or value <= 0 then
+        return locale('ui.speedUnlimited')
+    end
+
+    return locale('ui.speedFormat'):format(value)
+end
+
+local function bannerPositionLabel(value)
+    if value == 'right-center' then
+        return locale('menu.positionRightCenter')
+    elseif value == 'left-center' then
+        return locale('menu.positionLeftCenter')
+    elseif value == 'top-center' then
+        return locale('menu.positionTopCenter')
+    end
+
+    return value
+end
+
+local function showTwinDesignerSummary(data)
+    local decision = promise.new()
+    local resolved = false
+    local metadata = {
+        { label = locale('ui.metadataLocation'), value = ('%.2f, %.2f, %.2f'):format(data.coords.x, data.coords.y, data.coords.z) },
+        { label = locale('ui.metadataRadius'), value = tostring(lib.math.round(data.radius, 2)) },
+        { label = locale('ui.metadataBanner'), value = ('%s (%s)'):format(data.banner, data.bannerColor) },
+        { label = locale('ui.metadataBannerPosition'), value = bannerPositionLabel(data.bannerPosition) },
+        { label = locale('ui.metadataSpeedLimit'), value = formatSpeed(data.speedLimit) },
+        { label = locale('ui.metadataFiring'), value = boolLabel(data.disableFiring) },
+        { label = locale('ui.metadataInvincible'), value = boolLabel(data.invincible) },
+        { label = locale('ui.metadataBlip'), value = locale('ui.metadataBlipValue'):format(data.blipID, data.blipColor) }
+    }
+
+    lib.registerContext({
+        id = 'outlawtwin_zone_summary',
+        title = locale('ui.designerTitle'),
+        description = locale('ui.designerDescription'),
+        onExit = function()
+            if resolved then return end
+            resolved = true
+            decision:resolve(false)
+        end,
+        options = {
+            {
+                title = locale('ui.details'),
+                icon = 'map-location-dot',
+                metadata = metadata,
+                disabled = true
+            },
+            {
+                title = locale('ui.confirm'),
+                description = locale('ui.confirmDescription'),
+                icon = 'circle-check',
+                onSelect = function()
+                    if resolved then return end
+                    resolved = true
+                    if lib.hideContext then
+                        lib.hideContext()
+                    end
+                    decision:resolve(true)
+                end
+            },
+            {
+                title = locale('ui.cancel'),
+                description = locale('ui.cancelDescription'),
+                icon = 'rotate-left',
+                onSelect = function()
+                    if resolved then return end
+                    resolved = true
+                    if lib.hideContext then
+                        lib.hideContext()
+                    end
+                    decision:resolve(false)
+                end
+            }
+        }
+    })
+
+    lib.showContext('outlawtwin_zone_summary')
+
+    return Citizen.Await(decision)
+end
+
 -- Start of events for creating Greenzones in-game, this is the menu that takes data, passes it to server
-lib.callback.register('lation_greenzones:adminZone', function()
+lib.callback.register('outlawtwin_greenzones:adminZone', function()
     pedCoords = GetEntityCoords(cache.ped)
+    local notifyPosition = (Notifications and Notifications.position) or 'top'
+    lib.notify({
+        title = locale('menu.title'),
+        description = locale('menu.subtitle'),
+        position = notifyPosition,
+        type = 'inform',
+        duration = 6000,
+        icon = 'draw-polygon'
+    })
     adminZoneMenu = lib.inputDialog(locale('menu.title'), {
         {type = 'input', label = locale('menu.blipName'), description = locale('menu.blipNameDescription'), placeholder = locale('menu.blipNamePlaceholder'), icon = 'quote-left', required = true, min = 4, max = 16},
         {type = 'input', label = locale('menu.displayText'), description = locale('menu.displayTextDescription'), placeholder = locale('menu.displayTextPlaceholder'), icon = 'comment', required = true},
@@ -208,24 +309,42 @@ lib.callback.register('lation_greenzones:adminZone', function()
     })
     if adminZoneMenu == nil then
         return
-    else
-        zoneName = adminZoneMenu[1]
-        textUI = adminZoneMenu[2]
-        textUIColor = adminZoneMenu[3]
-        textUIPosition = adminZoneMenu[4]
-        zoneSize = adminZoneMenu[5]
-        disarm = adminZoneMenu[6]
-        invincible = adminZoneMenu[7]
-        speedLimit = adminZoneMenu[8]
-        blipID = adminZoneMenu[9]
-        blipColor = adminZoneMenu[10]
-        lib.callback('lation_greenzones:data', false, cb, pedCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
     end
+
+    zoneName = adminZoneMenu[1]
+    textUI = adminZoneMenu[2]
+    textUIColor = adminZoneMenu[3]
+    textUIPosition = adminZoneMenu[4]
+    zoneSize = adminZoneMenu[5]
+    disarm = adminZoneMenu[6]
+    invincible = adminZoneMenu[7]
+    speedLimit = adminZoneMenu[8]
+    blipID = adminZoneMenu[9]
+    blipColor = adminZoneMenu[10]
+
+    local summaryAccepted = showTwinDesignerSummary({
+        coords = pedCoords,
+        radius = zoneSize,
+        banner = textUI,
+        bannerColor = textUIColor,
+        bannerPosition = textUIPosition,
+        speedLimit = speedLimit,
+        disableFiring = disarm,
+        invincible = invincible,
+        blipID = blipID,
+        blipColor = blipColor
+    })
+
+    if not summaryAccepted then
+        return
+    end
+
+    lib.callback('outlawtwin_greenzones:data', false, cb, pedCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
 end)
 
 -- The function that creates a temporary greenzone via in-game command for all clients from the data passed
-RegisterNetEvent('lation_greenzones:createAdminZone')
-AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
+RegisterNetEvent('outlawtwin_greenzones:createAdminZone')
+AddEventHandler('outlawtwin_greenzones:createAdminZone', function(zoneCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
     vehicle = GetVehiclePedIsIn(cache.ped, false)
     zone:remove() -- Removes any existing zones
     RemoveBlip(radiusBlip) -- Removes any exisitng radius blips
@@ -233,7 +352,7 @@ AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneNa
     lib.hideTextUI() -- Hides any existing textUI's
     SetVehicleMaxSpeed(vehicle, 0.0) -- Ensures no vehicle speed limits are enforced
     SetEntityInvincible(cache.ped, false) -- Ensures no one is still invincible anywhere
-    createBlip(zoneName, zoneCoords, zoneSize, blipID, blipColor) -- Creates the new blip
+    createTwinBlip(zoneName, zoneCoords, zoneSize, blipID, blipColor) -- Creates the new blip
     zone = lib.points.new(zoneCoords, zoneSize) -- Creates a new point
     speed = speedLimit * 0.44 -- Converts to MPH (probably not 100% accurate but works enough lul)
     function zone:onEnter()
@@ -270,7 +389,7 @@ AddEventHandler('lation_greenzones:createAdminZone', function(zoneCoords, zoneNa
 end)
 
 -- The function that creates blips for Greenzones created in-game
-function createBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
+local function createTwinBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
     local radius = lib.math.round(blipRadius, 1)
     radiusBlip = AddBlipForRadius(blipCoords, radius)
     SetBlipColour(radiusBlip, blipColor)
@@ -287,7 +406,7 @@ function createBlip(blipName, blipCoords, blipRadius, blipID, blipColor)
 end
 
 -- The actual removal of all tempoary greenzone related things
-function deleteZone()
+local function deleteTwinZone()
     vehicle = GetVehiclePedIsIn(cache.ped, false)
     zone:remove()
     RemoveBlip(radiusBlip)
@@ -298,7 +417,7 @@ function deleteZone()
 end
 
 -- The confirmation for deleting an active temporary greenzone
-lib.callback.register('lation_greenzones:adminZoneClear', function()
+lib.callback.register('outlawtwin_greenzones:adminZoneClear', function()
     local confirm = lib.alertDialog({
         header = locale('confirm.title'),
         content = locale('confirm.content'),
@@ -306,14 +425,14 @@ lib.callback.register('lation_greenzones:adminZoneClear', function()
         cancel = true
     })
     if confirm == 'confirm' then
-        lib.callback('lation_greenzones:deleteZone')
+        lib.callback('outlawtwin_greenzones:deleteZone')
     else
         return
     end
 end)
 
 -- The event that gets triggered for all clients when deleting a temporary greenzone
-RegisterNetEvent('lation_greenzones:deleteAdminZone')
-AddEventHandler('lation_greenzones:deleteAdminZone', function()
-    deleteZone()
+RegisterNetEvent('outlawtwin_greenzones:deleteAdminZone')
+AddEventHandler('outlawtwin_greenzones:deleteAdminZone', function()
+    deleteTwinZone()
 end)
