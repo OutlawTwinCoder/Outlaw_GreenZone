@@ -90,14 +90,23 @@ local function enforceNoCollision()
     end
 end
 
+local function configureRadiusBlip(blip, color, alpha, shortRange)
+    if not blip or blip == 0 then return end
+
+    SetBlipColour(blip, color or 0)
+    SetBlipAlpha(blip, alpha or 100)
+    SetBlipDisplay(blip, 4)
+    SetBlipHighDetail(blip, true)
+    SetBlipAsShortRange(blip, shortRange == true)
+end
+
 local function createConfiguredBlip(cfg)
     if not cfg.blip then return end
     if cfg.blipType == 'radius' then
         local radius = tonumber(cfg.radius) or 0.0
         if radius > 0 then
             local radiusBlip = AddBlipForRadius(cfg.coords.x, cfg.coords.y, cfg.coords.z, radius)
-            SetBlipColour(radiusBlip, cfg.blipColor or 0)
-            SetBlipAlpha(radiusBlip, cfg.blipAlpha or 100)
+            configureRadiusBlip(radiusBlip, cfg.blipColor, cfg.blipAlpha, cfg.radiusShortRange)
             if cfg.enableSprite then
                 local spriteBlip = AddBlipForCoord(cfg.coords.x, cfg.coords.y, cfg.coords.z)
                 SetBlipSprite(spriteBlip, cfg.blipSprite or 1)
@@ -276,8 +285,7 @@ local function createAdminBlip(name, coords, radius, sprite, color)
     local blipRadius = tonumber(radius) or 0.0
     if blipRadius > 0 then
         adminState.radiusBlip = AddBlipForRadius(coords.x, coords.y, coords.z, blipRadius)
-        SetBlipColour(adminState.radiusBlip, color or 0)
-        SetBlipAlpha(adminState.radiusBlip, 100)
+        configureRadiusBlip(adminState.radiusBlip, color or 0, 100, false)
     end
 
     adminState.spriteBlip = AddBlipForCoord(coords.x, coords.y, coords.z)

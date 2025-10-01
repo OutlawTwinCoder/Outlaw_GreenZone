@@ -33,6 +33,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         displayTextIcon = 'hospital', -- The icon to be displayed on the TextUI in this zone if displayTextUI is true
         blip = true, -- Do you want a blip to display on the map here? True for yes, false for no
         blipType = 'radius', -- Type can be 'radius' or 'normal'
+        radiusShortRange = false, -- Should the radius only show when near the zone? False keeps the circle visible on the big map
         enableSprite = false, -- Do you want a sprite at the center of the radius blip? (If blipType = 'normal', this don't matter, it will display a sprite)
         blipSprite = 621, -- Blip sprite (https://docs.fivem.net/docs/game-references/blips/) (only used if enableSprite = true, otherwise can be ignored)
         blipColor = 2, -- Blip color (https://docs.fivem.net/docs/game-references/blips/#blip-colors)
@@ -57,6 +58,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         displayTextIcon = 'shield-halved',
         blip = true,
         blipType = 'radius',
+        radiusShortRange = false,
         enableSprite = false,
         blipSprite = 621,
         blipColor = 2,
@@ -81,6 +83,7 @@ Config.GreenZones = { -- These are persistent greenzones that exist constantly, 
         displayTextIcon = 'box',
         blip = true,
         blipType = 'radius',
+        radiusShortRange = false,
         enableSprite = false,
         blipSprite = 621,
         blipColor = 2,
