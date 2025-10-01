@@ -23,8 +23,12 @@ end)
 RegisterNetEvent('outlawtwin_greenzones:serverConfirm', function(data)
     local src = source
     -- ped coords could be fetched server-side if needed, but the client creating the zone usually dictates center.
-    -- For now we pass nil (clients can choose center themselves if implemented client-side).
+    -- Use the submitting client's position when available so every client shares the same zone origin.
     local pedCoords = nil
+    local coords = data and data.pedCoords
+    if coords and coords.x and coords.y and coords.z then
+        pedCoords = vec3(coords.x + 0.0, coords.y + 0.0, coords.z + 0.0)
+    end
     TriggerClientEvent('outlawtwin_greenzones:createAdminZone', -1,
         pedCoords,
         data and data.zoneName or 'Greenzone',
