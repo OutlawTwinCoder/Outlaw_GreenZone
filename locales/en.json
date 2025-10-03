@@ -41,6 +41,7 @@
         "optionTitle": "Remove %s",
         "optionDescription": "Radius: %s m",
         "removeAll": "Remove all Green Zones",
-        "none": "No admin Green Zones are active."
+        "none": "No admin Green Zones are active.",
+        "remove": "Remove zone"
     }
 }

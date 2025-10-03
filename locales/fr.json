@@ -41,6 +41,7 @@
         "optionTitle": "Supprimer %s",
         "optionDescription": "Rayon : %s m",
         "removeAll": "Supprimer toutes les zones vertes",
-        "none": "Aucune zone verte admin n'est active."
+        "none": "Aucune zone verte admin n'est active.",
+        "remove": "Supprimer la zone"
     }
 }

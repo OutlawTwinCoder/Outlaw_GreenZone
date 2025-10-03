@@ -1,4 +1,5 @@
 local AdminZones = {}
+local removalOpen = false
 local resourceName = GetCurrentResourceName()
 
 local function getPlayerId()
@@ -25,6 +26,22 @@ local function toVec3(data)
         return vec3(tonumber(data.x) or 0.0, tonumber(data.y) or 0.0, tonumber(data.z) or 0.0)
     end
     return vec3(0.0, 0.0, 0.0)
+end
+
+local function applyBlipVisuals(blip, colour, alpha)
+    if not blip or blip == 0 then return end
+
+    local hudColour = tonumber(colour) or 1
+    SetBlipColour(blip, hudColour)
+
+    local r, g, b = GetHudColour(hudColour)
+    if r then
+        SetBlipSecondaryColour(blip, r, g, b)
+    end
+
+    if alpha then
+        SetBlipAlpha(blip, alpha)
+    end
 end
 
 local function notify(kind, payload)
@@ -204,13 +221,14 @@ local function createPersistentZones()
         if zoneCfg.blip then
             if zoneCfg.blipType == 'radius' then
                 local blip = AddBlipForRadius(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z, zoneCfg.radius)
-                SetBlipColour(blip, zoneCfg.blipColor)
-                SetBlipAlpha(blip, zoneCfg.blipAlpha)
+                applyBlipVisuals(blip, zoneCfg.blipColor, zoneCfg.blipAlpha)
+                SetBlipDisplay(blip, 4)
+                SetBlipHighDetail(blip, true)
 
                 if zoneCfg.enableSprite then
                     local blip2 = AddBlipForCoord(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z)
                     SetBlipSprite(blip2, zoneCfg.blipSprite)
-                    SetBlipColour(blip2, zoneCfg.blipColor)
+                    applyBlipVisuals(blip2, zoneCfg.blipColor)
                     SetBlipScale(blip2, zoneCfg.blipScale)
                     SetBlipAsShortRange(blip2, true)
                     BeginTextCommandSetBlipName('STRING')
@@ -220,7 +238,7 @@ local function createPersistentZones()
             else
                 local blip = AddBlipForCoord(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z)
                 SetBlipSprite(blip, zoneCfg.blipSprite)
-                SetBlipColour(blip, zoneCfg.blipColor)
+                applyBlipVisuals(blip, zoneCfg.blipColor)
                 SetBlipScale(blip, zoneCfg.blipScale)
                 SetBlipAsShortRange(blip, true)
                 BeginTextCommandSetBlipName('STRING')
@@ -233,7 +251,7 @@ end
 
 local function removeAdminZone(id)
     local entry = AdminZones[id]
-    if not entry then return end
+    if not entry then return false end
 
     if entry.zone then
         entry.zone:remove()
@@ -260,25 +278,63 @@ local function removeAdminZone(id)
     end
 
     AdminZones[id] = nil
+
+    refreshRemovalUi()
+    return true
 end
 
 local function createAdminBlips(entry)
     local roundedRadius = lib.math.round(entry.radius, 1)
     entry.radiusBlip = AddBlipForRadius(entry.coords.x, entry.coords.y, entry.coords.z, roundedRadius)
-    SetBlipColour(entry.radiusBlip, entry.blipColor)
-    SetBlipAlpha(entry.radiusBlip, 100)
+    applyBlipVisuals(entry.radiusBlip, entry.blipColor, 100)
     SetBlipDisplay(entry.radiusBlip, 4)
     SetBlipHighDetail(entry.radiusBlip, true)
 
     entry.spriteBlip = AddBlipForCoord(entry.coords.x, entry.coords.y, entry.coords.z)
     SetBlipSprite(entry.spriteBlip, entry.blipID)
     SetBlipDisplay(entry.spriteBlip, 4)
-    SetBlipColour(entry.spriteBlip, entry.blipColor)
+    applyBlipVisuals(entry.spriteBlip, entry.blipColor)
     SetBlipScale(entry.spriteBlip, 1.0)
     SetBlipAsShortRange(entry.spriteBlip, true)
     BeginTextCommandSetBlipName('STRING')
     AddTextComponentString(entry.name)
     EndTextCommandSetBlipName(entry.spriteBlip)
+end
+
+local function buildRemovalUiData()
+    local payload = {
+        title = locale('admin.title'),
+        removeLabel = locale('admin.remove'),
+        removeAllLabel = locale('admin.removeAll'),
+        empty = locale('admin.none')
+    }
+
+    payload.confirmLabel = payload.removeAllLabel
+
+    local zones = {}
+    for id, zone in pairs(AdminZones) do
+        zones[#zones + 1] = {
+            id = id,
+            name = zone.name or locale('menu.blipNamePlaceholder'),
+            subtitle = locale('admin.optionDescription', string.format('%.1f', zone.radius or 0.0))
+        }
+    end
+
+    table.sort(zones, function(a, b)
+        return (tonumber(a.id) or 0) < (tonumber(b.id) or 0)
+    end)
+
+    payload.zones = zones
+    return payload
+end
+
+local function refreshRemovalUi()
+    if not removalOpen then return end
+
+    SendNUIMessage({
+        action = 'updateRemoval',
+        data = buildRemovalUiData()
+    })
 end
 
 local function registerAdminZone(data)
@@ -352,47 +408,17 @@ local function registerAdminZone(data)
     end
 
     AdminZones[data.id] = entry
+
+    refreshRemovalUi()
 end
 
 local function openRemovalMenu()
-    local options = {}
-
-    for id, zone in pairs(AdminZones) do
-        options[#options + 1] = {
-            title = locale('admin.optionTitle', zone.name),
-            description = locale('admin.optionDescription', string.format('%.1f', zone.radius)),
-            icon = 'ban',
-            onSelect = function()
-                TriggerServerEvent('lation_greenzones:serverDelete', id)
-            end
-        }
-    end
-
-    if #options == 0 then
-        if lib and lib.notify then
-            lib.notify({
-                title = locale('notify.greenzoneTitle'),
-                description = locale('admin.none'),
-                type = 'inform'
-            })
-        end
-        return
-    end
-
-    options[#options + 1] = {
-        title = locale('admin.removeAll'),
-        icon = 'trash',
-        onSelect = function()
-            TriggerServerEvent('lation_greenzones:serverDelete')
-        end
-    }
-
-    lib.registerContext({
-        id = 'lation_greenzones:removeMenu',
-        title = locale('admin.title'),
-        options = options
+    removalOpen = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = 'openRemoval',
+        data = buildRemovalUiData()
     })
-    lib.showContext('lation_greenzones:removeMenu')
 end
 
 CreateThread(function()
@@ -414,6 +440,7 @@ AddEventHandler('onResourceStop', function(res)
 
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
+    removalOpen = false
 
     for id in pairs(AdminZones) do
         removeAdminZone(id)
@@ -425,8 +452,15 @@ AddEventHandler('onResourceStop', function(res)
 end)
 
 RegisterNetEvent('lation_greenzones:openDesigner', function(defaults)
+    removalOpen = false
     SetNuiFocus(true, true)
-    SendNUIMessage({ action = 'open', data = defaults or {} })
+    SendNUIMessage({
+        action = 'open',
+        data = defaults or {},
+        meta = {
+            title = locale('menu.title')
+        }
+    })
 end)
 
 RegisterNetEvent('lation_greenzones:createAdminZone', function(data)
@@ -439,10 +473,13 @@ RegisterNetEvent('lation_greenzones:deleteAdminZone', function(id)
         for zoneId in pairs(AdminZones) do
             removeAdminZone(zoneId)
         end
+        refreshRemovalUi()
         return
     end
 
-    removeAdminZone(id)
+    if not removeAdminZone(id) then
+        refreshRemovalUi()
+    end
 end)
 
 RegisterNetEvent('lation_greenzones:openRemovalMenu', function()
@@ -452,16 +489,40 @@ end)
 RegisterNUICallback('cancel', function(_, cb)
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
+    removalOpen = false
     cb(1)
 end)
 
 RegisterNUICallback('confirm', function(data, cb)
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
+    removalOpen = false
 
     local coords = GetEntityCoords(getPed())
     data.coords = ensureTableCoords(coords)
     TriggerServerEvent('lation_greenzones:serverConfirm', data)
+
+    cb(1)
+end)
+
+RegisterNUICallback('remove', function(data, cb)
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close' })
+    removalOpen = false
+
+    if data and data.id then
+        TriggerServerEvent('lation_greenzones:serverDelete', tonumber(data.id))
+    end
+
+    cb(1)
+end)
+
+RegisterNUICallback('removeAll', function(_, cb)
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close' })
+    removalOpen = false
+
+    TriggerServerEvent('lation_greenzones:serverDelete')
 
     cb(1)
 end)

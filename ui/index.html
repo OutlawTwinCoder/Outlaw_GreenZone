@@ -15,80 +15,87 @@
         </header>
 
         <div class="tablet__content">
-          <div class="grid">
-            <label class="field">
-              <span class="field__label">Zone name</span>
-              <input id="zoneName" class="input" type="text" placeholder="Greenzone">
-            </label>
+          <div id="designerView" class="view view--designer" aria-hidden="false">
+            <div class="grid">
+              <label class="field">
+                <span class="field__label">Zone name</span>
+                <input id="zoneName" class="input" type="text" placeholder="Greenzone">
+              </label>
 
-            <label class="field">
-              <span class="field__label">Text UI</span>
-              <input id="textUI" class="input" type="text" placeholder="Greenzone active">
-            </label>
+              <label class="field">
+                <span class="field__label">Text UI</span>
+                <input id="textUI" class="input" type="text" placeholder="Greenzone active">
+              </label>
 
-            <div class="field field--row">
-              <div class="field field--color">
-                <span class="field__label">Text color</span>
-                <div class="color-row">
-                  <input id="textUIColorPicker" class="color" type="color" value="#FF5A47">
-                  <input id="textUIColor" class="input" type="text" value="#FF5A47" placeholder="#FF5A47">
+              <div class="field field--row">
+                <div class="field field--color">
+                  <span class="field__label">Text color</span>
+                  <div class="color-row">
+                    <input id="textUIColorPicker" class="color" type="color" value="#FF5A47">
+                    <input id="textUIColor" class="input" type="text" value="#FF5A47" placeholder="#FF5A47">
+                  </div>
                 </div>
+
+                <label class="field">
+                  <span class="field__label">Text position</span>
+                  <select id="textUIPosition" class="input select">
+                    <option value="top-left">Top-Left</option>
+                    <option value="top-center">Top-Center</option>
+                    <option value="top-right">Top-Right</option>
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                    <option value="bottom-left">Bottom-Left</option>
+                    <option value="bottom-center">Bottom-Center</option>
+                    <option value="bottom-right">Bottom-Right</option>
+                  </select>
+                </label>
               </div>
 
-              <label class="field">
-                <span class="field__label">Text position</span>
-                <select id="textUIPosition" class="input select">
-                  <option value="top-left">Top-Left</option>
-                  <option value="top-center">Top-Center</option>
-                  <option value="top-right">Top-Right</option>
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                  <option value="bottom-left">Bottom-Left</option>
-                  <option value="bottom-center">Bottom-Center</option>
-                  <option value="bottom-right">Bottom-Right</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="field">
-              <div class="field__label with-value">
-                <span>Zone size (radius)</span>
-                <span id="zoneSizeValue">50</span>
+              <div class="field">
+                <div class="field__label with-value">
+                  <span>Zone size (radius)</span>
+                  <span id="zoneSizeValue">50</span>
+                </div>
+                <input id="zoneSize" type="range" min="5" max="200" step="1">
               </div>
-              <input id="zoneSize" type="range" min="5" max="200" step="1">
-            </div>
 
-            <div class="field field--row">
-              <label class="toggle">
-                <input id="disarm" type="checkbox">
-                <span>Désarmer</span>
-              </label>
-              <label class="toggle">
-                <input id="invincible" type="checkbox">
-                <span>Invincible</span>
-              </label>
-            </div>
-
-            <div class="field">
-              <div class="field__label with-value">
-                <span>Speed limit (km/h)</span>
-                <span id="speedLimitValue">0</span>
+              <div class="field field--row">
+                <label class="toggle">
+                  <input id="disarm" type="checkbox">
+                  <span>Désarmer</span>
+                </label>
+                <label class="toggle">
+                  <input id="invincible" type="checkbox">
+                  <span>Invincible</span>
+                </label>
               </div>
-              <input id="speedLimit" type="range" min="0" max="200" step="5">
-              <small class="hint">0 = Off</small>
-            </div>
 
-            <div class="field field--row">
-              <label class="field">
-                <span class="field__label">Blip ID</span>
-                <input id="blipID" class="input" type="number" min="1" max="826" placeholder="487">
-              </label>
-              <label class="field">
-                <span class="field__label">Blip Color</span>
-                <input id="blipColor" class="input" type="number" min="1" max="85" placeholder="1">
-              </label>
+              <div class="field">
+                <div class="field__label with-value">
+                  <span>Speed limit (km/h)</span>
+                  <span id="speedLimitValue">0</span>
+                </div>
+                <input id="speedLimit" type="range" min="0" max="200" step="5">
+                <small class="hint">0 = Off</small>
+              </div>
+
+              <div class="field field--row">
+                <label class="field">
+                  <span class="field__label">Blip ID</span>
+                  <input id="blipID" class="input" type="number" min="1" max="826" placeholder="487">
+                </label>
+                <label class="field">
+                  <span class="field__label">Blip Color</span>
+                  <input id="blipColor" class="input" type="number" min="1" max="85" placeholder="1">
+                </label>
+              </div>
             </div>
+          </div>
+
+          <div id="removalView" class="view view--removal is-hidden" aria-hidden="true">
+            <div id="removalEmpty" class="removal-empty">No admin Green Zones are active.</div>
+            <div id="removalList" class="removal-list"></div>
           </div>
         </div>
 
@@ -102,3 +109,4 @@
     <script src="script.js"></script>
   </body>
 </html>
+
