@@ -23,20 +23,30 @@
     fetch(`https://${GetParentResourceName()}/cancel`, { method: 'POST', body: '{}' });
   }
 
+  function getValue(obj, key, fallback) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, key) && obj[key] !== null && obj[key] !== undefined) {
+      return obj[key];
+    }
+    return fallback;
+  }
+
   function applyDefaults(d) {
-    els.zoneName.value = d.zoneName ?? 'Greenzone';
-    els.textUI.value = d.textUI ?? 'Greenzone active';
-    els.textUIColor.value = d.textUIColor ?? '#FF5A47';
-    els.textUIColorPicker.value = d.textUIColor ?? '#FF5A47';
-    els.textUIPosition.value = d.textUIPosition ?? 'top-center';
-    els.zoneSize.value = d.zoneSize ?? 50;
+    els.zoneName.value = getValue(d, 'zoneName', 'Greenzone');
+    els.textUI.value = getValue(d, 'textUI', 'Greenzone active');
+    const textColor = getValue(d, 'textUIColor', '#FF5A47');
+    els.textUIColor.value = textColor;
+    els.textUIColorPicker.value = textColor;
+    els.textUIPosition.value = getValue(d, 'textUIPosition', 'top-center');
+    els.zoneSize.value = getValue(d, 'zoneSize', 50);
     els.zoneSizeValue.textContent = String(els.zoneSize.value);
-    els.disarm.checked = Boolean(d.disarm ?? true);
-    els.invincible.checked = Boolean(d.invincible ?? true);
-    els.speedLimit.value = d.speedLimit ?? 0;
+    const disarmDefault = getValue(d, 'disarm', true);
+    els.disarm.checked = Boolean(disarmDefault);
+    const invincibleDefault = getValue(d, 'invincible', true);
+    els.invincible.checked = Boolean(invincibleDefault);
+    els.speedLimit.value = getValue(d, 'speedLimit', 0);
     els.speedLimitValue.textContent = String(els.speedLimit.value);
-    els.blipID.value = d.blipID ?? 487;
-    els.blipColor.value = d.blipColor ?? 1;
+    els.blipID.value = getValue(d, 'blipID', 487);
+    els.blipColor.value = getValue(d, 'blipColor', 1);
   }
 
   function openUI(payload) {

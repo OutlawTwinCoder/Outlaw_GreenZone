@@ -1,57 +1,69 @@
+local AdminZones = {}
 local resourceName = GetCurrentResourceName()
 
-local function sendGreenzoneNotify(kind, overrides)
-    if not lib or not lib.notify then return end
-
-    local force = overrides and overrides.force
-    if not force and (not Config or not Config.EnableNotifications) then return end
-
-    local base = Notifications or {}
-    local payload = {
-        title = base.greenzoneTitle or 'Greenzone',
-        icon = base.greenzoneIcon,
-        position = base.position,
-        type = base.type or 'inform'
-    }
-
-    if kind == 'enter' then
-        payload.description = base.greenzoneEnter
-    elseif kind == 'exit' then
-        payload.description = base.greenzoneExit
-    end
-
-    if overrides then
-        for key, value in pairs(overrides) do
-            if key ~= 'force' then
-                payload[key] = value
-            end
-        end
-    end
-
-    if not payload.description then
-        payload.description = ''
-    end
-
-    lib.notify(payload)
+local function getPlayerId()
+    return (cache and cache.playerId) or PlayerId()
 end
 
 local function getPed()
     return (cache and cache.ped) or PlayerPedId()
 end
 
-local function getPlayerId()
-    return (cache and cache.playerId) or PlayerId()
+local function ensureTableCoords(value)
+    if type(value) == 'vector3' then
+        return { x = value.x, y = value.y, z = value.z }
+    elseif type(value) == 'table' then
+        return { x = value.x or 0.0, y = value.y or 0.0, z = value.z or 0.0 }
+    end
+    return { x = 0.0, y = 0.0, z = 0.0 }
 end
 
-local function getVehicle(ped)
-    return GetVehiclePedIsIn(ped or getPed(), false)
+local function toVec3(data)
+    if type(data) == 'vector3' then
+        return data
+    elseif type(data) == 'table' then
+        return vec3(tonumber(data.x) or 0.0, tonumber(data.y) or 0.0, tonumber(data.z) or 0.0)
+    end
+    return vec3(0.0, 0.0, 0.0)
 end
 
-local function setEntityAlphaForOthers(alpha)
-    local myPed = getPed()
-    local myVeh = getVehicle(myPed)
-    for _, player in ipairs(GetActivePlayers()) do
-        if player ~= getPlayerId() then
+local function notify(kind, payload)
+    if not Config.EnableNotifications or not lib or not lib.notify then return end
+
+    local entering = kind == 'enter'
+
+    local message = {
+        title = Notifications.greenzoneTitle,
+        icon = Notifications.greenzoneIcon,
+        position = Notifications.position,
+        duration = 6000,
+        type = entering and 'success' or 'error',
+        description = entering and Notifications.greenzoneEnter or Notifications.greenzoneExit,
+        style = {
+            backgroundColor = entering and '#ff5a47' or '#72E68F',
+            color = '#2C2C2C',
+            ['.description'] = {
+                color = '#2C2C2C'
+            }
+        },
+        iconColor = '#2C2C2C'
+    }
+
+    if payload then
+        for key, value in pairs(payload) do
+            message[key] = value
+        end
+    end
+
+    lib.notify(message)
+end
+
+local function fadeEntities(alpha)
+    local myPlayerId = getPlayerId()
+    local ped = getPed()
+
+    for _, player in pairs(GetActivePlayers()) do
+        if player ~= myPlayerId then
             local otherPed = GetPlayerPed(player)
             if otherPed and otherPed ~= 0 then
                 SetEntityAlpha(otherPed, alpha, false)
@@ -62,368 +74,379 @@ local function setEntityAlphaForOthers(alpha)
             end
         end
     end
-    if myVeh ~= 0 then
-        SetEntityAlpha(myVeh, alpha, false)
+
+    if ped and ped ~= 0 then
+        local veh = GetVehiclePedIsIn(ped, false)
+        if veh and veh ~= 0 then
+            SetEntityAlpha(veh, alpha, false)
+        end
     end
 end
 
-local function enforceNoCollision()
-    local myPed = getPed()
-    local myVeh = getVehicle(myPed)
-    for _, player in ipairs(GetActivePlayers()) do
-        if player ~= getPlayerId() then
+local function applyNoCollision()
+    local ped = getPed()
+    local myPlayerId = getPlayerId()
+    local myVeh = GetVehiclePedIsIn(ped, false)
+
+    for _, player in pairs(GetActivePlayers()) do
+        if player ~= myPlayerId then
             local otherPed = GetPlayerPed(player)
             if otherPed and otherPed ~= 0 then
-                SetEntityNoCollisionEntity(myPed, otherPed, true)
-                SetEntityNoCollisionEntity(otherPed, myPed, true)
+                SetEntityNoCollisionEntity(ped, otherPed, true)
+                SetEntityNoCollisionEntity(otherPed, ped, true)
+
                 local otherVeh = GetVehiclePedIsIn(otherPed, false)
                 if otherVeh and otherVeh ~= 0 then
-                    if myVeh ~= 0 then
+                    SetEntityNoCollisionEntity(ped, otherVeh, true)
+                    SetEntityNoCollisionEntity(otherVeh, ped, true)
+
+                    if myVeh and myVeh ~= 0 then
                         SetEntityNoCollisionEntity(myVeh, otherVeh, true)
                         SetEntityNoCollisionEntity(otherVeh, myVeh, true)
                     end
-                    SetEntityNoCollisionEntity(myPed, otherVeh, true)
-                    SetEntityNoCollisionEntity(otherVeh, myPed, true)
                 end
             end
         end
     end
 end
 
-local function configureRadiusBlip(blip, color, alpha, shortRange)
-    if not blip or blip == 0 then return end
+local function createPersistentZones()
+    for _, zoneCfg in pairs(Config.GreenZones or {}) do
+        local point = lib.points.new(zoneCfg.coords, zoneCfg.radius)
 
-    SetBlipColour(blip, color or 0)
-    SetBlipAlpha(blip, alpha or 100)
-    SetBlipDisplay(blip, 4)
-    SetBlipHighDetail(blip, true)
-    SetBlipAsShortRange(blip, shortRange == true)
-end
+        function point:onEnter()
+            if zoneCfg.disablePlayerVehicleCollision then
+                fadeEntities(153)
+            end
 
-local function createConfiguredBlip(cfg)
-    if not cfg.blip then return end
-    if cfg.blipType == 'radius' then
-        local radius = tonumber(cfg.radius) or 0.0
-        if radius > 0 then
-            local radiusBlip = AddBlipForRadius(cfg.coords.x, cfg.coords.y, cfg.coords.z, radius)
-            configureRadiusBlip(radiusBlip, cfg.blipColor, cfg.blipAlpha, cfg.radiusShortRange)
-            if cfg.enableSprite then
-                local spriteBlip = AddBlipForCoord(cfg.coords.x, cfg.coords.y, cfg.coords.z)
-                SetBlipSprite(spriteBlip, cfg.blipSprite or 1)
-                SetBlipColour(spriteBlip, cfg.blipColor or 0)
-                SetBlipScale(spriteBlip, cfg.blipScale or 1.0)
-                SetBlipAsShortRange(spriteBlip, true)
+            if zoneCfg.removeWeapons then
+                local currentWeapon = GetSelectedPedWeapon(getPed())
+                if currentWeapon and currentWeapon ~= `WEAPON_UNARMED` then
+                    RemoveWeaponFromPed(getPed(), currentWeapon)
+                end
+            end
+
+            if zoneCfg.disableFiring then
+                SetPlayerCanDoDriveBy(getPlayerId(), false)
+            end
+
+            if zoneCfg.setInvincible then
+                SetEntityInvincible(getPed(), true)
+            end
+
+            if zoneCfg.enableSpeedLimits then
+                local veh = GetVehiclePedIsIn(getPed(), false)
+                if veh and veh ~= 0 then
+                    SetVehicleMaxSpeed(veh, (zoneCfg.setSpeedLimit or 0) * 0.44)
+                end
+            end
+
+            if zoneCfg.displayTextUI then
+                lib.showTextUI(zoneCfg.textToDisplay, {
+                    position = zoneCfg.displayTextPosition,
+                    icon = zoneCfg.displayTextIcon,
+                    style = {
+                        borderRadius = 4,
+                        backgroundColor = zoneCfg.backgroundColorTextUI,
+                        color = zoneCfg.textColor
+                    }
+                })
+            end
+
+            notify('enter')
+        end
+
+        function point:onExit()
+            if zoneCfg.disablePlayerVehicleCollision then
+                fadeEntities(255)
+            end
+
+            if zoneCfg.disableFiring then
+                SetPlayerCanDoDriveBy(getPlayerId(), true)
+            end
+
+            if zoneCfg.setInvincible then
+                SetEntityInvincible(getPed(), false)
+            end
+
+            if zoneCfg.enableSpeedLimits then
+                local veh = GetVehiclePedIsIn(getPed(), false)
+                if veh and veh ~= 0 then
+                    SetVehicleMaxSpeed(veh, 0.0)
+                end
+            end
+
+            if zoneCfg.displayTextUI then
+                lib.hideTextUI()
+            end
+
+            notify('exit')
+        end
+
+        function point:nearby()
+            if zoneCfg.disablePlayerVehicleCollision then
+                fadeEntities(153)
+                applyNoCollision()
+            end
+
+            if zoneCfg.disableFiring then
+                DisablePlayerFiring(getPed(), true)
+            end
+
+            if zoneCfg.enableSpeedLimits then
+                local veh = GetVehiclePedIsIn(getPed(), false)
+                if veh and veh ~= 0 then
+                    SetVehicleMaxSpeed(veh, (zoneCfg.setSpeedLimit or 0) * 0.44)
+                end
+            end
+        end
+
+        if zoneCfg.blip then
+            if zoneCfg.blipType == 'radius' then
+                local blip = AddBlipForRadius(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z, zoneCfg.radius)
+                SetBlipColour(blip, zoneCfg.blipColor)
+                SetBlipAlpha(blip, zoneCfg.blipAlpha)
+
+                if zoneCfg.enableSprite then
+                    local blip2 = AddBlipForCoord(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z)
+                    SetBlipSprite(blip2, zoneCfg.blipSprite)
+                    SetBlipColour(blip2, zoneCfg.blipColor)
+                    SetBlipScale(blip2, zoneCfg.blipScale)
+                    SetBlipAsShortRange(blip2, true)
+                    BeginTextCommandSetBlipName('STRING')
+                    AddTextComponentString(zoneCfg.blipName)
+                    EndTextCommandSetBlipName(blip2)
+                end
+            else
+                local blip = AddBlipForCoord(zoneCfg.coords.x, zoneCfg.coords.y, zoneCfg.coords.z)
+                SetBlipSprite(blip, zoneCfg.blipSprite)
+                SetBlipColour(blip, zoneCfg.blipColor)
+                SetBlipScale(blip, zoneCfg.blipScale)
+                SetBlipAsShortRange(blip, true)
                 BeginTextCommandSetBlipName('STRING')
-                AddTextComponentString(cfg.blipName or 'Greenzone')
-                EndTextCommandSetBlipName(spriteBlip)
+                AddTextComponentString(zoneCfg.blipName)
+                EndTextCommandSetBlipName(blip)
             end
-        end
-    else
-        local spriteBlip = AddBlipForCoord(cfg.coords.x, cfg.coords.y, cfg.coords.z)
-        SetBlipSprite(spriteBlip, cfg.blipSprite or 1)
-        SetBlipColour(spriteBlip, cfg.blipColor or 0)
-        SetBlipScale(spriteBlip, cfg.blipScale or 1.0)
-        SetBlipAsShortRange(spriteBlip, true)
-        BeginTextCommandSetBlipName('STRING')
-        AddTextComponentString(cfg.blipName or 'Greenzone')
-        EndTextCommandSetBlipName(spriteBlip)
-    end
-end
-
-local persistentZones = {}
-
-local function setupPersistentZones()
-    if not Config or not Config.GreenZones then return end
-    if not lib or not lib.points or not lib.points.new then return end
-
-    for _, cfg in pairs(Config.GreenZones) do
-        if cfg.coords and cfg.radius then
-            local zone = lib.points.new(cfg.coords, cfg.radius)
-            table.insert(persistentZones, zone)
-
-            local speedLimit = 0.0
-            if cfg.enableSpeedLimits and cfg.setSpeedLimit then
-                speedLimit = (tonumber(cfg.setSpeedLimit) or 0) * 0.44
-            end
-            local lastVehicle = 0
-
-            function zone:onEnter()
-                local ped = getPed()
-                if cfg.disablePlayerVehicleCollision then
-                    setEntityAlphaForOthers(153)
-                end
-                if cfg.removeWeapons then
-                    local currentWeapon = GetSelectedPedWeapon(ped)
-                    if currentWeapon and currentWeapon ~= `WEAPON_UNARMED` then
-                        RemoveWeaponFromPed(ped, currentWeapon)
-                    end
-                end
-                if cfg.disableFiring then
-                    SetPlayerCanDoDriveBy(getPlayerId(), false)
-                end
-                if cfg.setInvincible then
-                    SetEntityInvincible(ped, true)
-                end
-                if speedLimit > 0 then
-                    lastVehicle = getVehicle(ped)
-                    if lastVehicle ~= 0 then
-                        SetVehicleMaxSpeed(lastVehicle, speedLimit)
-                    end
-                end
-                if cfg.displayTextUI and lib and lib.showTextUI then
-                    lib.showTextUI(cfg.textToDisplay or 'Greenzone', {
-                        position = cfg.displayTextPosition or 'top-center',
-                        icon = cfg.displayTextIcon or 'shield-halved',
-                        style = {
-                            borderRadius = 4,
-                            backgroundColor = cfg.backgroundColorTextUI or '#ff5a47',
-                            color = cfg.textColor or '#000000'
-                        }
-                    })
-                end
-                sendGreenzoneNotify('enter')
-            end
-
-            function zone:onExit()
-                if cfg.disablePlayerVehicleCollision then
-                    setEntityAlphaForOthers(255)
-                end
-                if cfg.disableFiring then
-                    SetPlayerCanDoDriveBy(getPlayerId(), true)
-                end
-                if cfg.setInvincible then
-                    SetEntityInvincible(getPed(), false)
-                end
-                if speedLimit > 0 then
-                    if lastVehicle ~= 0 then
-                        SetVehicleMaxSpeed(lastVehicle, 0.0)
-                    else
-                        local ped = getPed()
-                        local veh = getVehicle(ped)
-                        if veh ~= 0 then
-                            SetVehicleMaxSpeed(veh, 0.0)
-                        end
-                    end
-                    lastVehicle = 0
-                end
-                if cfg.displayTextUI and lib and lib.hideTextUI then
-                    lib.hideTextUI()
-                end
-                sendGreenzoneNotify('exit')
-            end
-
-            function zone:nearby()
-                if cfg.disablePlayerVehicleCollision then
-                    enforceNoCollision()
-                end
-                if cfg.disableFiring then
-                    DisablePlayerFiring(getPed(), true)
-                end
-                if speedLimit > 0 then
-                    local ped = getPed()
-                    local veh = getVehicle(ped)
-                    if veh ~= 0 then
-                        lastVehicle = veh
-                        SetVehicleMaxSpeed(veh, speedLimit)
-                    end
-                end
-            end
-
-            createConfiguredBlip(cfg)
         end
     end
 end
 
-local adminState = {
-    point = nil,
-    radiusBlip = nil,
-    spriteBlip = nil,
-    speed = 0.0,
-    disarm = false,
-    invincible = false,
-    text = nil
-}
+local function removeAdminZone(id)
+    local entry = AdminZones[id]
+    if not entry then return end
 
-local function clearAdminZone()
-    if adminState.point then
-        adminState.point:remove()
-        adminState.point = nil
+    if entry.zone then
+        entry.zone:remove()
     end
-    if adminState.radiusBlip then
-        RemoveBlip(adminState.radiusBlip)
-        adminState.radiusBlip = nil
+
+    if entry.invincible then
+        SetEntityInvincible(getPed(), false)
     end
-    if adminState.spriteBlip then
-        RemoveBlip(adminState.spriteBlip)
-        adminState.spriteBlip = nil
+
+    if entry.vehicle and entry.vehicle ~= 0 then
+        SetVehicleMaxSpeed(entry.vehicle, 0.0)
     end
-    if lib and lib.hideTextUI then
+
+    if entry.radiusBlip then
+        RemoveBlip(entry.radiusBlip)
+    end
+
+    if entry.spriteBlip then
+        RemoveBlip(entry.spriteBlip)
+    end
+
+    if entry.textVisible then
         lib.hideTextUI()
     end
-    local ped = getPed()
-    local veh = getVehicle(ped)
-    if veh ~= 0 then
-        SetVehicleMaxSpeed(veh, 0.0)
-    end
-    SetEntityInvincible(ped, false)
-    adminState.speed = 0.0
-    adminState.disarm = false
-    adminState.invincible = false
-    adminState.text = nil
+
+    AdminZones[id] = nil
 end
 
-local function createAdminBlip(name, coords, radius, sprite, color)
-    if adminState.radiusBlip then
-        RemoveBlip(adminState.radiusBlip)
-        adminState.radiusBlip = nil
-    end
-    if adminState.spriteBlip then
-        RemoveBlip(adminState.spriteBlip)
-        adminState.spriteBlip = nil
-    end
+local function createAdminBlips(entry)
+    local roundedRadius = lib.math.round(entry.radius, 1)
+    entry.radiusBlip = AddBlipForRadius(entry.coords.x, entry.coords.y, entry.coords.z, roundedRadius)
+    SetBlipColour(entry.radiusBlip, entry.blipColor)
+    SetBlipAlpha(entry.radiusBlip, 100)
+    SetBlipDisplay(entry.radiusBlip, 4)
+    SetBlipHighDetail(entry.radiusBlip, true)
 
-    local blipRadius = tonumber(radius) or 0.0
-    if blipRadius > 0 then
-        adminState.radiusBlip = AddBlipForRadius(coords.x, coords.y, coords.z, blipRadius)
-        configureRadiusBlip(adminState.radiusBlip, color or 0, 175, false)
-    end
-
-    adminState.spriteBlip = AddBlipForCoord(coords.x, coords.y, coords.z)
-    SetBlipSprite(adminState.spriteBlip, sprite or 487)
-    SetBlipDisplay(adminState.spriteBlip, 4)
-    SetBlipColour(adminState.spriteBlip, color or 0)
-    SetBlipScale(adminState.spriteBlip, 1.0)
-    SetBlipAsShortRange(adminState.spriteBlip, true)
+    entry.spriteBlip = AddBlipForCoord(entry.coords.x, entry.coords.y, entry.coords.z)
+    SetBlipSprite(entry.spriteBlip, entry.blipID)
+    SetBlipDisplay(entry.spriteBlip, 4)
+    SetBlipColour(entry.spriteBlip, entry.blipColor)
+    SetBlipScale(entry.spriteBlip, 1.0)
+    SetBlipAsShortRange(entry.spriteBlip, true)
     BeginTextCommandSetBlipName('STRING')
-    AddTextComponentString(name or 'Greenzone')
-    EndTextCommandSetBlipName(adminState.spriteBlip)
+    AddTextComponentString(entry.name)
+    EndTextCommandSetBlipName(entry.spriteBlip)
 end
 
-local function toVector3(value)
-    if not value then return nil end
-    local valueType = type(value)
-    if valueType == 'vector3' then
-        return value
-    elseif valueType == 'table' then
-        local x, y, z = tonumber(value.x), tonumber(value.y), tonumber(value.z)
-        if x and y and z then
-            return vec3(x, y, z)
+local function registerAdminZone(data)
+    removeAdminZone(data.id)
+
+    local entry = {
+        id = data.id,
+        name = data.zoneName or locale('menu.blipNamePlaceholder'),
+        coords = toVec3(data.coords),
+        radius = tonumber(data.zoneSize) or 50.0,
+        textUI = data.textUI or 'Greenzone active',
+        textUIColor = data.textUIColor or '#FF5A47',
+        textUIPosition = data.textUIPosition or 'top-center',
+        disarm = data.disarm or false,
+        invincible = data.invincible or false,
+        speedLimit = (tonumber(data.speedLimit) or 0) * 0.277778,
+        blipID = tonumber(data.blipID) or 487,
+        blipColor = tonumber(data.blipColor) or 1
+    }
+
+    entry.coords = vec3(entry.coords.x, entry.coords.y, entry.coords.z)
+
+    createAdminBlips(entry)
+
+    entry.zone = lib.points.new(entry.coords, entry.radius)
+
+    function entry.zone:onEnter()
+        entry.vehicle = GetVehiclePedIsIn(getPed(), false)
+        lib.showTextUI(entry.textUI, {
+            position = entry.textUIPosition,
+            icon = 'shield-halved',
+            style = {
+                borderRadius = 4,
+                backgroundColor = entry.textUIColor,
+                color = 'black'
+            }
+        })
+        entry.textVisible = true
+
+        if entry.invincible then
+            SetEntityInvincible(getPed(), true)
         end
     end
-    return nil
+
+    function entry.zone:onExit()
+        if entry.textVisible then
+            lib.hideTextUI()
+            entry.textVisible = false
+        end
+
+        if entry.invincible then
+            SetEntityInvincible(getPed(), false)
+        end
+
+        if entry.vehicle and entry.vehicle ~= 0 then
+            SetVehicleMaxSpeed(entry.vehicle, 0.0)
+        end
+    end
+
+    function entry.zone:nearby()
+        if entry.disarm then
+            DisablePlayerFiring(getPed(), true)
+        end
+
+        if entry.speedLimit > 0 then
+            entry.vehicle = GetVehiclePedIsIn(getPed(), false)
+            if entry.vehicle and entry.vehicle ~= 0 then
+                SetVehicleMaxSpeed(entry.vehicle, entry.speedLimit)
+            end
+        end
+    end
+
+    AdminZones[data.id] = entry
+end
+
+local function openRemovalMenu()
+    local options = {}
+
+    for id, zone in pairs(AdminZones) do
+        options[#options + 1] = {
+            title = locale('admin.optionTitle', zone.name),
+            description = locale('admin.optionDescription', string.format('%.1f', zone.radius)),
+            icon = 'ban',
+            onSelect = function()
+                TriggerServerEvent('lation_greenzones:serverDelete', id)
+            end
+        }
+    end
+
+    if #options == 0 then
+        if lib and lib.notify then
+            lib.notify({
+                title = locale('notify.greenzoneTitle'),
+                description = locale('admin.none'),
+                type = 'inform'
+            })
+        end
+        return
+    end
+
+    options[#options + 1] = {
+        title = locale('admin.removeAll'),
+        icon = 'trash',
+        onSelect = function()
+            TriggerServerEvent('lation_greenzones:serverDelete')
+        end
+    }
+
+    lib.registerContext({
+        id = 'lation_greenzones:removeMenu',
+        title = locale('admin.title'),
+        options = options
+    })
+    lib.showContext('lation_greenzones:removeMenu')
 end
 
 CreateThread(function()
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
-    setupPersistentZones()
-    TriggerServerEvent('outlawtwin_greenzones:requestAdminZone')
+
+    if lib and lib.callback then
+        local existing = lib.callback.await('lation_greenzones:getAdminZones', false) or {}
+        for _, zone in pairs(existing) do
+            registerAdminZone(zone)
+        end
+    end
+
+    createPersistentZones()
 end)
 
 AddEventHandler('onResourceStop', function(res)
-    if res == resourceName then
-        SetNuiFocus(false, false)
-        SendNUIMessage({ action = 'close' })
-        clearAdminZone()
-        if lib and lib.hideTextUI then lib.hideTextUI() end
-        setEntityAlphaForOthers(255)
-        for _, zone in ipairs(persistentZones) do
-            zone:remove()
-        end
+    if res ~= resourceName then return end
+
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close' })
+
+    for id in pairs(AdminZones) do
+        removeAdminZone(id)
+    end
+
+    if lib and lib.hideTextUI then
+        lib.hideTextUI()
     end
 end)
 
-RegisterNetEvent('outlawtwin_greenzones:openDesigner', function(payload)
+RegisterNetEvent('lation_greenzones:openDesigner', function(defaults)
     SetNuiFocus(true, true)
-    SendNUIMessage({ action = 'open', data = payload or {} })
+    SendNUIMessage({ action = 'open', data = defaults or {} })
 end)
 
-RegisterNetEvent('outlawtwin_greenzones:createAdminZone', function(pedCoords, zoneName, textUI, textUIColor, textUIPosition, zoneSize, disarm, invincible, speedLimit, blipID, blipColor)
-    clearAdminZone()
+RegisterNetEvent('lation_greenzones:createAdminZone', function(data)
+    if type(data) ~= 'table' then return end
+    registerAdminZone(data)
+end)
 
-    local center = toVector3(pedCoords) or GetEntityCoords(getPed())
-    local radius = tonumber(zoneSize) or 50.0
-
-    createAdminBlip(zoneName, center, radius, blipID or 487, blipColor or 1)
-
-    adminState.speed = (tonumber(speedLimit) or 0) * 0.44
-    adminState.disarm = disarm and true or false
-    adminState.invincible = invincible and true or false
-    adminState.text = {
-        content = textUI or 'Greenzone active',
-        color = textUIColor or '#FF5A47',
-        position = textUIPosition or 'top-center'
-    }
-
-    if lib and lib.points and lib.points.new then
-        adminState.point = lib.points.new(center, radius)
-        function adminState.point:onEnter()
-            local ped = getPed()
-            if lib and lib.showTextUI and adminState.text.content and adminState.text.content ~= '' then
-                lib.showTextUI(adminState.text.content, {
-                    position = adminState.text.position or 'top-center',
-                    icon = 'shield-halved',
-                    style = {
-                        borderRadius = 4,
-                        backgroundColor = adminState.text.color or '#FF5A47',
-                        color = '#000000'
-                    }
-                })
-            end
-            if adminState.invincible then
-                SetEntityInvincible(ped, true)
-            end
+RegisterNetEvent('lation_greenzones:deleteAdminZone', function(id)
+    if not id then
+        for zoneId in pairs(AdminZones) do
+            removeAdminZone(zoneId)
         end
-
-        function adminState.point:onExit()
-            if lib and lib.hideTextUI then
-                lib.hideTextUI()
-            end
-            local ped = getPed()
-            if adminState.invincible then
-                SetEntityInvincible(ped, false)
-            end
-            local veh = getVehicle(ped)
-            if veh ~= 0 then
-                SetVehicleMaxSpeed(veh, 0.0)
-            end
-        end
-
-        function adminState.point:nearby()
-            local ped = getPed()
-            if adminState.disarm then
-                DisablePlayerFiring(ped, true)
-            end
-            if adminState.speed > 0 then
-                local veh = getVehicle(ped)
-                if veh ~= 0 then
-                    SetVehicleMaxSpeed(veh, adminState.speed)
-                end
-            end
-        end
+        return
     end
 
-    sendGreenzoneNotify('enter', {
-        force = true,
-        title = zoneName or (Notifications and Notifications.greenzoneTitle) or 'Greenzone',
-        description = ('Radius %s, speed %s'):format(radius or '?', speedLimit or 0)
-    })
+    removeAdminZone(id)
 end)
 
-RegisterNetEvent('outlawtwin_greenzones:deleteAdminZone', function()
-    clearAdminZone()
-    sendGreenzoneNotify('exit', {
-        force = true,
-        description = (Notifications and Notifications.greenzoneExit) or 'Zone supprimée'
-    })
-end)
-
-RegisterNetEvent('outlawtwin_greenzones:notifyEnter', function(overrides)
-    sendGreenzoneNotify('enter', overrides)
-end)
-
-RegisterNetEvent('outlawtwin_greenzones:notifyExit', function(overrides)
-    sendGreenzoneNotify('exit', overrides)
+RegisterNetEvent('lation_greenzones:openRemovalMenu', function()
+    openRemovalMenu()
 end)
 
 RegisterNUICallback('cancel', function(_, cb)
@@ -435,10 +458,10 @@ end)
 RegisterNUICallback('confirm', function(data, cb)
     SetNuiFocus(false, false)
     SendNUIMessage({ action = 'close' })
-    local ped = getPed()
-    local coords = GetEntityCoords(ped)
-    data = data or {}
-    data.pedCoords = { x = coords.x, y = coords.y, z = coords.z }
-    TriggerServerEvent('outlawtwin_greenzones:serverConfirm', data)
+
+    local coords = GetEntityCoords(getPed())
+    data.coords = ensureTableCoords(coords)
+    TriggerServerEvent('lation_greenzones:serverConfirm', data)
+
     cb(1)
 end)

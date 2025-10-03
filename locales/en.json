@@ -22,7 +22,7 @@
         "size": "Size (radius)",
         "disableFiring": "Disable Firing",
         "invincible": "Everyone Invincible",
-        "speedLimit": "Speed Limit (MPH)",
+        "speedLimit": "Speed Limit (km/h)",
         "blipID": "Blip ID",
         "blipIDDescription": "The sprite ID to display on the map",
         "blipColor": "Blip Color",
@@ -34,6 +34,13 @@
     },
     "commands": {
         "setzone": "Create a temporary Green Zone",
-        "deletezone": "Delete a temporary Green Zone"
+        "deletezone": "Manage temporary Green Zones"
+    },
+    "admin": {
+        "title": "Manage Admin Green Zones",
+        "optionTitle": "Remove %s",
+        "optionDescription": "Radius: %s m",
+        "removeAll": "Remove all Green Zones",
+        "none": "No admin Green Zones are active."
     }
 }

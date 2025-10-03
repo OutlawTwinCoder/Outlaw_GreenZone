@@ -34,6 +34,13 @@
     },
     "commands": {
         "setzone": "Créer une zone verte temporaire",
-        "deletezone": "Supprimer une zone verte temporaire"
+        "deletezone": "Gérer les zones vertes temporaires"
+    },
+    "admin": {
+        "title": "Gérer les zones vertes admin",
+        "optionTitle": "Supprimer %s",
+        "optionDescription": "Rayon : %s m",
+        "removeAll": "Supprimer toutes les zones vertes",
+        "none": "Aucune zone verte admin n'est active."
     }
 }

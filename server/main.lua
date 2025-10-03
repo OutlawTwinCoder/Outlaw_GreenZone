@@ -1,142 +1,92 @@
--- Commands
-Config = Config or {}
-local resourceName = GetCurrentResourceName()
-local saveFile = 'data/admin_zone.json'
-local savedAdminZone = nil
-local jsonDecode = (json and json.decode) or (lib and lib.json and lib.json.decode)
-local jsonEncode = (json and json.encode) or (lib and lib.json and lib.json.encode)
+local adminZones = {}
+local nextZoneId = 0
 
-local function loadSavedAdminZone()
-    local raw = LoadResourceFile(resourceName, saveFile)
-    if not raw or raw == '' then return end
-
-    if not jsonDecode then return end
-
-    local ok, decoded = pcall(jsonDecode, raw)
-    if not ok or type(decoded) ~= 'table' then return end
-    if next(decoded) == nil then return end
-
-    savedAdminZone = decoded
-    if savedAdminZone.zoneSize then
-        savedAdminZone.zoneSize = tonumber(savedAdminZone.zoneSize) or 50
-    end
-    if savedAdminZone.speedLimit then
-        savedAdminZone.speedLimit = tonumber(savedAdminZone.speedLimit) or 0
-    end
-    if savedAdminZone.blipID then
-        savedAdminZone.blipID = tonumber(savedAdminZone.blipID) or 487
-    end
-    if savedAdminZone.blipColor then
-        savedAdminZone.blipColor = tonumber(savedAdminZone.blipColor) or 1
-    end
-    savedAdminZone.disarm = savedAdminZone.disarm == true
-    savedAdminZone.invincible = savedAdminZone.invincible == true
+local function getNextZoneId()
+    nextZoneId += 1
+    return nextZoneId
 end
 
-local function persistAdminZone()
-    if savedAdminZone then
-        if not jsonEncode then return end
-
-        local ok, encoded = pcall(jsonEncode, savedAdminZone)
-        if ok and encoded then
-            SaveResourceFile(resourceName, saveFile, encoded, -1)
-        end
-    else
-        SaveResourceFile(resourceName, saveFile, '{}', -1)
-    end
-end
-
-local function broadcastAdminZone(target)
-    if not savedAdminZone then return end
-
-    local coords
-    local dataCoords = savedAdminZone.pedCoords
-    if dataCoords and dataCoords.x and dataCoords.y and dataCoords.z then
-        coords = vec3(0.0 + dataCoords.x, 0.0 + dataCoords.y, 0.0 + dataCoords.z)
+local function sanitizeCoords(src, coords)
+    if type(coords) == 'table' and coords.x and coords.y and coords.z then
+        return {
+            x = tonumber(coords.x) or 0.0,
+            y = tonumber(coords.y) or 0.0,
+            z = tonumber(coords.z) or 0.0
+        }
     end
 
-    TriggerClientEvent('outlawtwin_greenzones:createAdminZone', target or -1,
-        coords,
-        savedAdminZone.zoneName or 'Greenzone',
-        savedAdminZone.textUI or 'Greenzone active',
-        savedAdminZone.textUIColor or '#FF5A47',
-        savedAdminZone.textUIPosition or 'top-center',
-        savedAdminZone.zoneSize or 50,
-        savedAdminZone.disarm == true,
-        savedAdminZone.invincible == true,
-        savedAdminZone.speedLimit or 0,
-        savedAdminZone.blipID or 487,
-        savedAdminZone.blipColor or 1
-    )
+    local ped = GetPlayerPed(src)
+    if ped and ped ~= 0 then
+        local pedCoords = GetEntityCoords(ped)
+        return { x = pedCoords.x, y = pedCoords.y, z = pedCoords.z }
+    end
+
+    return { x = 0.0, y = 0.0, z = 0.0 }
 end
 
-local function clearSavedAdminZone()
-    savedAdminZone = nil
-    persistAdminZone()
+local function clamp(num, min, max)
+    if num < min then return min end
+    if num > max then return max end
+    return num
 end
 
-local cmdOpen = Config.GreenzonesCommand or 'outlawzone'
-local cmdClear = Config.GreenzonesClearCommand or 'outlawclear'
-
-lib.addCommand(cmdOpen, {
-    help = 'Open Outlaw Greenzone designer',
+lib.addCommand(Config.GreenzonesCommand, {
+    help = locale('commands.setzone'),
     restricted = 'group.admin'
-}, function(source, args, raw)
-    -- Supply defaults from Config if available
+}, function(source)
     local defaults = Config.Defaults or {}
-    TriggerClientEvent('outlawtwin_greenzones:openDesigner', source, defaults)
+    TriggerClientEvent('lation_greenzones:openDesigner', source, defaults)
 end)
 
-lib.addCommand(cmdClear, {
-    help = 'Clear Outlaw Greenzone',
+lib.addCommand(Config.GreenzonesClearCommand, {
+    help = locale('commands.deletezone'),
     restricted = 'group.admin'
-}, function(source, args, raw)
-    TriggerClientEvent('outlawtwin_greenzones:deleteAdminZone', -1)
-    clearSavedAdminZone()
+}, function(source)
+    TriggerClientEvent('lation_greenzones:openRemovalMenu', source)
 end)
 
--- Receive confirmed data from one admin and broadcast to everyone
-RegisterNetEvent('outlawtwin_greenzones:serverConfirm', function(data)
+RegisterNetEvent('lation_greenzones:serverConfirm', function(data)
     local src = source
-    -- ped coords could be fetched server-side if needed, but the client creating the zone usually dictates center.
-    -- Use the submitting client's position when available so every client shares the same zone origin.
-    local pedCoords = nil
-    local coords = data and data.pedCoords
-    if coords and coords.x and coords.y and coords.z then
-        pedCoords = vec3(coords.x + 0.0, coords.y + 0.0, coords.z + 0.0)
-    end
-    savedAdminZone = {
-        pedCoords = pedCoords and { x = pedCoords.x + 0.0, y = pedCoords.y + 0.0, z = pedCoords.z + 0.0 } or nil,
-        zoneName = data and data.zoneName or 'Greenzone',
-        textUI = data and data.textUI or 'Greenzone active',
-        textUIColor = data and data.textUIColor or '#FF5A47',
-        textUIPosition = data and data.textUIPosition or 'top-center',
-        zoneSize = tonumber(data and data.zoneSize) or 50,
-        disarm = data and (data.disarm and true or false) or false,
-        invincible = data and (data.invincible and true or false) or false,
-        speedLimit = tonumber(data and data.speedLimit) or 0,
-        blipID = tonumber(data and data.blipID) or 487,
-        blipColor = tonumber(data and data.blipColor) or 1
-    }
+    if src <= 0 or type(data) ~= 'table' then return end
 
-    persistAdminZone()
-    broadcastAdminZone(-1)
+    local payload = {}
+    payload.zoneName = (data.zoneName and data.zoneName ~= '') and data.zoneName or (Config.Defaults and Config.Defaults.zoneName) or 'Greenzone'
+    payload.textUI = (data.textUI and data.textUI ~= '') and data.textUI or (Config.Defaults and Config.Defaults.textUI) or 'Greenzone active'
+    payload.textUIColor = data.textUIColor or (Config.Defaults and Config.Defaults.textUIColor) or '#FF5A47'
+    payload.textUIPosition = data.textUIPosition or (Config.Defaults and Config.Defaults.textUIPosition) or 'top-center'
+
+    local radius = tonumber(data.zoneSize) or (Config.Defaults and tonumber(Config.Defaults.zoneSize)) or 50
+    payload.zoneSize = clamp(radius, 5, 400)
+
+    payload.disarm = data.disarm and true or false
+    payload.invincible = data.invincible and true or false
+    payload.speedLimit = clamp(tonumber(data.speedLimit) or 0, 0, 200)
+    payload.blipID = clamp(tonumber(data.blipID) or 487, 1, 826)
+    payload.blipColor = clamp(tonumber(data.blipColor) or 1, 1, 85)
+    payload.coords = sanitizeCoords(src, data.coords)
+
+    local zoneId = getNextZoneId()
+    payload.id = zoneId
+
+    adminZones[zoneId] = payload
+
+    TriggerClientEvent('lation_greenzones:createAdminZone', -1, payload)
 end)
 
-RegisterNetEvent('outlawtwin_greenzones:requestAdminZone', function()
+RegisterNetEvent('lation_greenzones:serverDelete', function(id)
     local src = source
-    if src and src > 0 then
-        broadcastAdminZone(src)
+    if src <= 0 then return end
+
+    if id and adminZones[id] then
+        adminZones[id] = nil
+        TriggerClientEvent('lation_greenzones:deleteAdminZone', -1, id)
+        return
     end
+
+    adminZones = {}
+    TriggerClientEvent('lation_greenzones:deleteAdminZone', -1, nil)
 end)
 
-AddEventHandler('onResourceStart', function(res)
-    if res ~= resourceName then return end
-    loadSavedAdminZone()
-    if savedAdminZone then
-        CreateThread(function()
-            Wait(500)
-            broadcastAdminZone(-1)
-        end)
-    end
+lib.callback.register('lation_greenzones:getAdminZones', function()
+    return adminZones
 end)
