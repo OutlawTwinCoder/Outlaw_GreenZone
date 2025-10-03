@@ -18,6 +18,7 @@ ui_page 'ui/index.html'
 
 files {
     'locales/*.json',
+    'data/admin_zone.json',
     'ui/index.html',
     'ui/script.js',
     'ui/style.css'

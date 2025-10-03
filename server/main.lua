@@ -1,5 +1,57 @@
 local adminZones = {}
 local nextZoneId = 0
+local resourceName = GetCurrentResourceName()
+local dataFile = 'data/admin_zone.json'
+
+local function saveAdminZones()
+    if not resourceName then return end
+
+    local payload = {}
+    for id, zone in pairs(adminZones) do
+        payload[tostring(id)] = zone
+    end
+
+    local encoded = json.encode(payload)
+    if not encoded then return end
+
+    SaveResourceFile(resourceName, dataFile, encoded, -1)
+end
+
+local function loadAdminZones()
+    if not resourceName then return end
+
+    local content = LoadResourceFile(resourceName, dataFile)
+    if not content or content == '' then
+        SaveResourceFile(resourceName, dataFile, '{}', -1)
+        return
+    end
+
+    local decoded = json.decode(content)
+    if type(decoded) ~= 'table' then
+        SaveResourceFile(resourceName, dataFile, '{}', -1)
+        return
+    end
+
+    adminZones = {}
+    local maxId = 0
+
+    for id, zone in pairs(decoded) do
+        if type(zone) == 'table' then
+            local zoneId = tonumber(id) or tonumber(zone.id)
+            if zoneId then
+                zone.id = zoneId
+                adminZones[zoneId] = zone
+                if zoneId > maxId then
+                    maxId = zoneId
+                end
+            end
+        end
+    end
+
+    nextZoneId = maxId
+end
+
+loadAdminZones()
 
 local function getNextZoneId()
     nextZoneId += 1
@@ -71,6 +123,7 @@ RegisterNetEvent('lation_greenzones:serverConfirm', function(data)
     adminZones[zoneId] = payload
 
     TriggerClientEvent('lation_greenzones:createAdminZone', -1, payload)
+    saveAdminZones()
 end)
 
 RegisterNetEvent('lation_greenzones:serverDelete', function(id)
@@ -80,11 +133,13 @@ RegisterNetEvent('lation_greenzones:serverDelete', function(id)
     if id and adminZones[id] then
         adminZones[id] = nil
         TriggerClientEvent('lation_greenzones:deleteAdminZone', -1, id)
+        saveAdminZones()
         return
     end
 
     adminZones = {}
     TriggerClientEvent('lation_greenzones:deleteAdminZone', -1, nil)
+    saveAdminZones()
 end)
 
 lib.callback.register('lation_greenzones:getAdminZones', function()
