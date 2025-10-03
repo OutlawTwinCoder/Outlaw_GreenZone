@@ -1,0 +1,47 @@
+{
+    "notify": {
+        "greenzoneTitle": "Zone verte",
+        "greenzoneEnter": "Vous êtes entré dans une zone verte et certaines actions ont été désactivées",
+        "greenzoneExit": "Vous avez quitté une zone verte et toutes les actions ont été rétablies"
+    },
+    "menu": {
+        "title": "Créer une zone verte",
+        "blipName": "Nom du blip",
+        "blipNameDescription": "Le nom de la zone verte sur la carte",
+        "blipNamePlaceholder": "Zone verte",
+        "displayText": "Texte affiché",
+        "displayTextDescription": "Texte affiché à l'écran de tous les joueurs dans cette zone",
+        "displayTextPlaceholder": "Zone verte",
+        "displayTextColor": "Couleur du texte",
+        "displayTextColorDescription": "Code couleur HTML du texte affiché",
+        "displayTextPosition": "Position du texte",
+        "displayTextPositionDescription": "La position à l'écran du texte",
+        "positionRightCenter": "Centre droit",
+        "positionLeftCenter": "Centre gauche",
+        "positionTopCenter": "Centre haut",
+        "size": "Taille (rayon)",
+        "disableFiring": "Désactiver les tirs",
+        "invincible": "Tout le monde invincible",
+        "speedLimit": "Limite de vitesse (km/h)",
+        "blipID": "ID du blip",
+        "blipIDDescription": "Identifiant du sprite à afficher sur la carte",
+        "blipColor": "Couleur du blip",
+        "blipColorDescription": "La couleur du blip pour le sprite ci-dessus"
+    },
+    "confirm": {
+        "title": "Confirmer l'action",
+        "content": "Êtes-vous sûr de vouloir supprimer votre zone verte ?"
+    },
+    "commands": {
+        "setzone": "Créer une zone verte temporaire",
+        "deletezone": "Gérer les zones vertes temporaires"
+    },
+    "admin": {
+        "title": "Gérer les zones vertes admin",
+        "optionTitle": "Supprimer %s",
+        "optionDescription": "Rayon : %s m",
+        "removeAll": "Supprimer toutes les zones vertes",
+        "none": "Aucune zone verte admin n'est active.",
+        "remove": "Supprimer la zone"
+    }
+}

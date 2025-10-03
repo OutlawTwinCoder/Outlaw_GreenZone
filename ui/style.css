@@ -22,6 +22,10 @@ html, body {
   visibility: hidden !important;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 /* Tablet panel */
 .tablet {
   width: 820px;
@@ -69,6 +73,16 @@ html, body {
 
 .tablet__content {
   padding: 22px;
+}
+
+.view {
+  width: 100%;
+}
+
+.view--removal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .grid {
@@ -189,4 +203,62 @@ input[type="range"]::-webkit-slider-thumb {
   color: #111;
   font-weight: 700;
   box-shadow: 0 10px 24px rgba(255,90,71,.35);
+}
+
+.btn--danger {
+  background: #FF3B30;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(255,59,48,.35);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.removal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.removal-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(255,255,255,0.06);
+  gap: 18px;
+}
+
+.removal-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.removal-card__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.removal-card__subtitle {
+  font-size: 12px;
+  opacity: 0.65;
+  letter-spacing: .3px;
+}
+
+.removal-empty {
+  padding: 32px;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px dashed rgba(255,255,255,0.15);
+  background: rgba(22, 27, 34, 0.65);
+  font-size: 13px;
+  letter-spacing: .3px;
+  opacity: 0.8;
 }

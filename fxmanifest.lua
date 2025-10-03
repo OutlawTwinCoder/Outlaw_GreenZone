@@ -2,29 +2,34 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-author 'OutlawTwinCoder'
-description 'Outlaw Greenzones + Designer (final, tablet-style UI, transparency fixed)'
-version '1.2.0'
+author 'iamlation'
+description 'A greenzones script to create controlled areas on the map for FiveM'
+version '1.0.1'
+
+client_scripts {
+    'client/*.lua'
+}
+
+server_scripts {
+    'server/*.lua'
+}
 
 ui_page 'ui/index.html'
 
 files {
+    'locales/*.json',
+    'data/admin_zone.json',
     'ui/index.html',
-    'ui/style.css',
     'ui/script.js',
-    'locales/en.json',
-    'locales/fr.json',
+    'ui/style.css'
 }
 
 shared_scripts {
-    '@ox_lib/init.lua',
     'config.lua',
+    '@ox_lib/init.lua'
 }
 
-client_scripts {
-    'client/main.lua',
-}
-
-server_scripts {
-    'server/main.lua',
+ox_libs {
+    'locale',
+    'math'
 }
