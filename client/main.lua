@@ -1,6 +1,7 @@
 local AdminZones = {}
 local removalOpen = false
 local resourceName = GetCurrentResourceName()
+local refreshRemovalUi
 
 local function getPlayerId()
     return (cache and cache.playerId) or PlayerId()
@@ -279,7 +280,9 @@ local function removeAdminZone(id)
 
     AdminZones[id] = nil
 
-    refreshRemovalUi()
+    if refreshRemovalUi then
+        refreshRemovalUi()
+    end
     return true
 end
 
@@ -328,7 +331,7 @@ local function buildRemovalUiData()
     return payload
 end
 
-local function refreshRemovalUi()
+refreshRemovalUi = function()
     if not removalOpen then return end
 
     SendNUIMessage({

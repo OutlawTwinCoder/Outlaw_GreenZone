@@ -1,3 +1,41 @@
+local existingLocale = rawget(_G, 'locale')
+local oxLib = rawget(_G, 'lib')
+local libLocale
+
+if type(oxLib) == 'table' and type(oxLib.locale) == 'function' then
+    local ok, translator = pcall(oxLib.locale)
+    if ok and type(translator) == 'function' then
+        libLocale = translator
+    end
+end
+
+local function safeLocale(key, ...)
+    if type(existingLocale) == 'function' then
+        local ok, value = pcall(existingLocale, key, ...)
+        if ok and value ~= nil then
+            return value
+        end
+    end
+
+    if type(libLocale) == 'function' then
+        local ok, value = pcall(libLocale, key, ...)
+        if ok and value ~= nil then
+            return value
+        end
+    end
+
+    if select('#', ...) > 0 then
+        local ok, value = pcall(string.format, key, ...)
+        if ok and value ~= nil then
+            return value
+        end
+    end
+
+    return key
+end
+
+locale = safeLocale
+
 Config = {}
 
 Config.EnableNotifications = false -- Do you want notifications when a player enters and exits the preconfigured greenzones (The Config.GreenZones)?
